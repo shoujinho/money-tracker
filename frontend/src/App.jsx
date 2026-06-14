@@ -48,16 +48,23 @@ function groupByDate(transactions) {
 
 function getWeeklySummary(transactions) {
   const now = new Date()
-  const dayOfWeek = now.getDay()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-  monday.setHours(0, 0, 0, 0)
+  const dayOfWeek = now.getDay() // 0 = Sunday
 
-  const weekStart = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`
-  const weekEnd = today()
+  // Week starts Sunday
+  const sunday = new Date(now)
+  sunday.setDate(now.getDate() - dayOfWeek)
+  sunday.setHours(0, 0, 0, 0)
+
+  // Week ends Saturday
+  const saturday = new Date(sunday)
+  saturday.setDate(sunday.getDate() + 6)
+
+  const toStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  const weekStart = toStr(sunday)
+  const weekEnd = toStr(saturday)
 
   const fmt2 = (d) => d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-  const rangeLabel = `${fmt2(monday)} – ${fmt2(now)}`
+  const rangeLabel = `${fmt2(sunday)} – ${fmt2(saturday)}`
 
   let moneyIn = 0, moneyOut = 0
   transactions.forEach(tx => {
