@@ -60,6 +60,20 @@ export async function createTransaction(data) {
   return res.json()
 }
 
+export async function updateTransaction(id, data) {
+  const res = await fetch(db(`/transactions?id=eq.${id}`), {
+    method: 'PATCH',
+    headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify({
+      date: data.date,
+      description: data.description,
+      amount: data.amount,
+      account_id: data.account_id,
+    })
+  })
+  if (!res.ok) throw new Error('Failed to update transaction')
+}
+
 export async function deleteTransaction(id) {
   const res = await fetch(db(`/transactions?id=eq.${id}`), {
     method: 'DELETE',

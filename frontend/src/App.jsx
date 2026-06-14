@@ -1,15 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getBalances, getAccounts, getTransactions, createTransaction, deleteTransaction } from './api'
+import { getBalances, getAccounts, getTransactions, createTransaction, deleteTransaction, updateTransaction } from './api'
 
 const fmt = (n) =>
   '₱' + Math.abs(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const R = {
+  modal: '24px',
+  card: '20px',
+  btn: '16px',
+  row: '16px',
+  input: '12px',
+  action: '14px',
+}
+
 const glassCard = {
   background: 'rgba(255,255,255,0.06)',
   border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: '20px',
+  borderRadius: R.card,
   position: 'relative',
   overflow: 'hidden',
 }
@@ -56,7 +65,7 @@ function BalanceCard({ label, amount }) {
   return (
     <div style={{ ...glassCard, padding: '16px 18px' }}>
       <div style={highlight} />
-      <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '8px', margin: '0 0 8px' }}>
+      <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', margin: '0 0 8px' }}>
         {label}
       </p>
       <p style={{ fontSize: '20px', fontWeight: 600, color: isNegative ? '#ff6b6b' : '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
@@ -66,26 +75,28 @@ function BalanceCard({ label, amount }) {
   )
 }
 
-function TransactionRow({ tx, onDelete }) {
+function TransactionRow({ tx, onEdit }) {
   const isPositive = tx.amount >= 0
-  const [confirming, setConfirming] = useState(false)
-  const [hovered, setHovered] = useState(false)
-
-  const handleDelete = () => {
-    if (!confirming) { setConfirming(true); return }
-    onDelete(tx.id)
-  }
+  const [pressed, setPressed] = useState(false)
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setConfirming(false) }}
+      onClick={() => onEdit(tx)}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '11px 14px', borderRadius: '14px',
-        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        marginBottom: '2px', transition: 'background 0.15s',
+        padding: '11px 14px', borderRadius: R.row,
+        background: pressed
+          ? isPositive ? 'rgba(79,255,176,0.08)' : 'rgba(255,107,107,0.08)'
+          : isPositive ? 'rgba(79,255,176,0.04)' : 'rgba(255,107,107,0.04)',
+        border: `1px solid ${isPositive ? 'rgba(79,255,176,0.09)' : 'rgba(255,107,107,0.09)'}`,
+        marginBottom: '2px',
+        transition: 'background 0.1s',
+        cursor: 'pointer',
       }}
     >
       <div style={{
@@ -103,33 +114,21 @@ function TransactionRow({ tx, onDelete }) {
       <span style={{ fontSize: '13px', fontWeight: 700, color: isPositive ? '#4fffb0' : '#ff6b6b', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
         {isPositive ? '+' : '-'}{fmt(tx.amount)}
       </span>
-      <button
-        onClick={handleDelete}
-        onBlur={() => setConfirming(false)}
-        style={{
-          fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
-          border: confirming ? 'none' : '1px solid rgba(255,255,255,0.12)',
-          background: confirming ? '#ff6b6b' : 'transparent',
-          color: confirming ? '#000' : 'rgba(255,255,255,0.4)',
-          cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
-          opacity: hovered ? 1 : 0,
-        }}
-      >
-        {confirming ? 'Confirm' : 'Delete'}
-      </button>
     </div>
   )
 }
 
-function AddTransactionModal({ accounts, onSave, onClose }) {
+function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
+  const isEdit = mode === 'edit'
   const [form, setForm] = useState({
-    date: today(),
-    description: '',
-    amount: '',
-    account_id: accounts[0]?.id ?? '',
+    date: tx?.date ?? today(),
+    description: tx?.description ?? '',
+    amount: tx ? String(tx.amount) : '',
+    account_id: tx?.account_id ?? accounts[0]?.id ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -148,20 +147,32 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setLoading(true)
+    try {
+      await onDelete(tx.id)
+      onClose()
+    } catch {
+      setError('Could not delete. Try again.')
+      setLoading(false)
+    }
+  }
+
   const handleKey = (e) => { if (e.key === 'Enter') handleSubmit() }
 
   const inputStyle = {
-    width: '100%', background: 'rgba(255,255,255,0.08)', color: '#fff',
-    fontSize: '14px', fontWeight: 500, borderRadius: '12px',
+    width: '100%', background: 'rgba(255,255,255,0.07)', color: '#fff',
+    fontSize: '14px', fontWeight: 500, borderRadius: R.input,
     padding: '12px 14px', outline: 'none', boxSizing: 'border-box',
-    border: '1px solid rgba(255,255,255,0.12)', fontFamily: 'inherit',
+    border: '1px solid rgba(255,255,255,0.11)', fontFamily: 'inherit',
     letterSpacing: '-0.01em',
   }
 
   const labelStyle = {
     display: 'block', fontSize: '10px', fontWeight: 700,
     letterSpacing: '0.12em', textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.35)', marginBottom: '8px'
+    color: 'rgba(255,255,255,0.3)', marginBottom: '8px'
   }
 
   return (
@@ -170,27 +181,54 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.75)', padding: '20px',
+        background: 'rgba(5,5,12,0.75)', padding: '20px',
       }}
     >
       <div style={{
         width: '100%', maxWidth: '400px',
-        background: '#16161f',
-        border: '1px solid rgba(255,255,255,0.14)',
-        borderRadius: '24px',
+        background: 'rgba(18,18,28,0.92)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        borderRadius: R.modal,
         padding: '24px 20px 20px',
         position: 'relative', overflow: 'hidden',
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 40px 80px rgba(0,0,0,0.6)',
       }}>
         <div style={highlight} />
+        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent 60%)' }} />
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 60%)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Add Transaction</h2>
-          <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.35)', width: '26px', height: '26px',
-            borderRadius: '50%', cursor: 'pointer', fontSize: '15px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit'
-          }}>×</button>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+            {isEdit ? 'Edit Transaction' : 'Add Transaction'}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isEdit && (
+              <button
+                onClick={handleDelete}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: confirmDelete ? 'rgba(255,107,107,0.25)' : 'rgba(255,107,107,0.1)',
+                  border: `1px solid ${confirmDelete ? 'rgba(255,107,107,0.5)' : 'rgba(255,107,107,0.22)'}`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}
+                title={confirmDelete ? 'Tap again to confirm' : 'Delete transaction'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={confirmDelete ? '#ff4444' : '#ff6b6b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '15px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit',
+              }}
+            >×</button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -216,7 +254,8 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
           </div>
         </div>
 
-        {error && <p style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '10px', fontWeight: 500, margin: '10px 0 0' }}>{error}</p>}
+        {error && <p style={{ fontSize: '12px', color: '#ff6b6b', margin: '10px 0 0', fontWeight: 500 }}>{error}</p>}
+        {confirmDelete && <p style={{ fontSize: '12px', color: '#ff6b6b', margin: '10px 0 0', fontWeight: 500 }}>Tap the trash icon again to confirm deletion.</p>}
 
         <button
           onClick={handleSubmit}
@@ -224,15 +263,15 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
           style={{
             width: '100%', marginTop: '16px',
             background: loading ? 'rgba(255,255,255,0.1)' : '#ffffff',
-            border: 'none', borderRadius: '14px',
-            color: loading ? 'rgba(255,255,255,0.4)' : '#0a0a0f',
+            border: 'none', borderRadius: R.action,
+            color: loading ? 'rgba(0,0,0,0.4)' : '#0a0a0f',
             fontSize: '15px', fontWeight: 700, padding: '15px',
             cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit', letterSpacing: '-0.01em',
             transition: 'background 0.15s',
           }}
         >
-          {loading ? 'Saving...' : 'Save Transaction'}
+          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Transaction'}
         </button>
       </div>
     </div>
@@ -243,7 +282,7 @@ export default function App() {
   const [balances, setBalances] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
-  const [showAdd, setShowAdd] = useState(false)
+  const [modal, setModal] = useState(null) // null | { mode: 'add' } | { mode: 'edit', tx }
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -263,8 +302,19 @@ export default function App() {
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (data) => { await createTransaction(data); await load() }
-  const handleDelete = async (id) => { await deleteTransaction(id); await load() }
+  const handleSave = async (data) => {
+    if (modal?.mode === 'edit') {
+      await updateTransaction(modal.tx.id, data)
+    } else {
+      await createTransaction(data)
+    }
+    await load()
+  }
+
+  const handleDelete = async (id) => {
+    await deleteTransaction(id)
+    await load()
+  }
 
   const grouped = groupByDate(transactions)
 
@@ -276,25 +326,17 @@ export default function App() {
       color: '#fff',
     }}>
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.8; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
         select option { background: #16161f; color: #fff; }
       `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-      <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-        background: 'radial-gradient(ellipse 500px 500px at 70% 5%, rgba(120,80,255,0.15) 0%, transparent 70%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,180,255,0.08) 0%, transparent 70%)',
-      }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 500px 500px at 70% 5%, rgba(120,80,255,0.15) 0%, transparent 70%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,180,255,0.08) 0%, transparent 70%)' }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: '52px 20px 80px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: '52px 20px 100px' }}>
 
-        <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', margin: '0 0 6px' }}>
-          Money Tracker
-        </p>
+        <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', margin: '0 0 6px' }}>Money Tracker</p>
 
         {loading ? (
           <div style={{ height: '34px', width: '55%', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', marginBottom: '8px', animation: 'pulse 1.5s ease-in-out infinite' }} />
@@ -306,61 +348,62 @@ export default function App() {
           </h1>
         )}
 
-        <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', margin: '0 0 24px', letterSpacing: '0.01em' }}>Total Balance</p>
+        <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', margin: '0 0 24px' }}>Total Balance</p>
 
         {error && (
-          <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', fontSize: '12px', fontWeight: 500, borderRadius: '12px', padding: '12px 16px', marginBottom: '20px' }}>
+          <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', fontSize: '12px', fontWeight: 500, borderRadius: R.input, padding: '12px 16px', marginBottom: '20px' }}>
             {error}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-          {loading ? (
-            <><SkeletonCard /><SkeletonCard /></>
-          ) : (
-            balances?.accounts.map(a => <BalanceCard key={a.id} label={a.name} amount={a.balance} />)
-          )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '28px' }}>
+          {loading ? <><SkeletonCard /><SkeletonCard /></> : balances?.accounts.map(a => <BalanceCard key={a.id} label={a.name} amount={a.balance} />)}
         </div>
-
-        <button
-          onClick={() => setShowAdd(true)}
-          style={{
-            width: '100%', marginBottom: '28px',
-            ...glassCard,
-            padding: '15px', fontSize: '15px', fontWeight: 700,
-            color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'block', textAlign: 'center', letterSpacing: '-0.01em',
-          }}
-        >
-          + Add Transaction
-        </button>
 
         <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginBottom: '24px' }} />
 
-        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: '0 0 16px' }}>
-          Recent Transactions
-        </p>
+        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: '0 0 16px' }}>Recent Transactions</p>
 
         {!loading && transactions.length === 0 ? (
-          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>
-            No transactions yet. Add your first one.
-          </p>
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
         ) : (
           Object.entries(grouped).map(([dateLabel, txs]) => (
             <div key={dateLabel} style={{ marginBottom: '16px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', margin: '0 0 8px 2px' }}>
-                {dateLabel}
-              </p>
-              {txs.map(tx => (
-                <TransactionRow key={tx.id} tx={tx} onDelete={handleDelete} />
-              ))}
+              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', margin: '0 0 8px 2px' }}>{dateLabel}</p>
+              {txs.map(tx => <TransactionRow key={tx.id} tx={tx} onEdit={(tx) => setModal({ mode: 'edit', tx })} />)}
             </div>
           ))
         )}
       </div>
 
-      {showAdd && (
-        <AddTransactionModal accounts={accounts} onSave={handleSave} onClose={() => setShowAdd(false)} />
+      {/* FAB */}
+      <button
+        onClick={() => setModal({ mode: 'add' })}
+        style={{
+          position: 'fixed', bottom: '32px', right: '28px', zIndex: 40,
+          width: '56px', height: '56px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.12)',
+          border: '1px solid rgba(255,255,255,0.25)',
+          color: '#fff', fontSize: '26px', fontWeight: 300,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', fontFamily: 'inherit',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
+          overflow: 'hidden', position: 'fixed',
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
+        +
+      </button>
+
+      {modal && (
+        <TransactionModal
+          mode={modal.mode}
+          tx={modal.tx}
+          accounts={accounts}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={() => setModal(null)}
+        />
       )}
     </div>
   )
