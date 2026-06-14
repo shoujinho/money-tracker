@@ -15,25 +15,19 @@ const glassCard = {
 }
 
 const glassHighlight = {
-  content: '""',
-  position: 'absolute',
-  top: 0, left: 0, right: 0,
-  height: '1px',
-  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+  position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)'
 }
 
 function BalanceCard({ label, amount }) {
   const isNegative = amount < 0
   return (
     <div style={{ ...glassCard, padding: '16px 18px' }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)'
-      }} />
-      <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
+      <div style={glassHighlight} />
+      <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
         {label}
       </p>
-      <p style={{ fontSize: '22px', fontWeight: 500, color: isNegative ? '#ff6b6b' : '#fff', letterSpacing: '-0.02em', tabularNums: true }}>
+      <p style={{ fontSize: '21px', fontWeight: 600, color: isNegative ? '#ff6b6b' : '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
         {isNegative ? '-' : ''}{fmt(amount)}
       </p>
     </div>
@@ -56,25 +50,25 @@ function TransactionRow({ tx, onDelete }) {
       onMouseLeave={() => { setHovered(false); setConfirming(false) }}
       style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '12px 14px', borderRadius: '14px',
+        padding: '11px 14px', borderRadius: '14px',
         background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.07)',
         marginBottom: '2px', transition: 'background 0.15s',
       }}
     >
       <div style={{
-        width: '3px', height: '32px', borderRadius: '2px', flexShrink: 0,
+        width: '3px', height: '30px', borderRadius: '2px', flexShrink: 0,
         background: isPositive ? '#4fffb0' : '#ff6b6b'
       }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(255,255,255,0.90)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.90)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>
           {tx.description}
         </p>
-        <p style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>
+        <p style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0', letterSpacing: '0.01em' }}>
           {tx.date} · {tx.account_name}
         </p>
       </div>
-      <span style={{ fontSize: '13px', fontWeight: 600, color: isPositive ? '#4fffb0' : '#ff6b6b', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: '13px', fontWeight: 700, color: isPositive ? '#4fffb0' : '#ff6b6b', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
         {isPositive ? '+' : '-'}{fmt(tx.amount)}
       </span>
       <button
@@ -129,35 +123,41 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
     fontSize: '14px', fontWeight: 500, borderRadius: '12px',
     padding: '12px 14px', outline: 'none', boxSizing: 'border-box',
     border: '1px solid rgba(255,255,255,0.12)', fontFamily: 'inherit',
+    letterSpacing: '-0.01em',
   }
 
   const labelStyle = {
-    display: 'block', fontSize: '10px', fontWeight: 600,
-    letterSpacing: '0.1em', textTransform: 'uppercase',
+    display: 'block', fontSize: '10px', fontWeight: 700,
+    letterSpacing: '0.12em', textTransform: 'uppercase',
     color: 'rgba(255,255,255,0.35)', marginBottom: '8px'
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.75)',
-    }}>
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.75)',
+        padding: '20px',
+      }}
+    >
       <div style={{
         ...glassCard,
-        width: '100%', maxWidth: '480px',
-        padding: '28px 24px 36px',
-        borderBottom: 'none',
-        borderRadius: '28px 28px 0 0',
+        width: '100%', maxWidth: '400px',
+        padding: '28px 24px 28px',
+        borderRadius: '24px',
       }}>
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)'
-        }} />
+        <div style={glassHighlight} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 600, color: '#fff', margin: 0 }}>Add Transaction</h2>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Add Transaction</h2>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.6)', width: '28px', height: '28px',
+            borderRadius: '50%', cursor: 'pointer', fontSize: '16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit'
+          }}>×</button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -193,9 +193,9 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
             background: loading ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
             border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: '14px', color: '#fff',
-            fontSize: '15px', fontWeight: 600, padding: '16px',
+            fontSize: '15px', fontWeight: 700, padding: '15px',
             cursor: loading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', position: 'relative', overflow: 'hidden',
+            fontFamily: 'inherit', letterSpacing: '-0.01em',
             transition: 'background 0.15s',
           }}
         >
@@ -230,28 +230,25 @@ export default function App() {
   const handleSave = async (data) => { await createTransaction(data); await load() }
   const handleDelete = async (id) => { await deleteTransaction(id); await load() }
 
-  const bgStyle = {
-    minHeight: '100vh',
-    background: '#0a0a0f',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    color: '#fff',
-  }
-
-  const ambientStyle = {
-    position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-    background: 'radial-gradient(ellipse 500px 500px at 70% 5%, rgba(120,80,255,0.15) 0%, transparent 70%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,180,255,0.08) 0%, transparent 70%)',
-  }
-
   return (
-    <div style={bgStyle}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      color: '#fff',
+    }}>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <div style={ambientStyle} />
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        background: 'radial-gradient(ellipse 500px 500px at 70% 5%, rgba(120,80,255,0.15) 0%, transparent 70%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,180,255,0.08) 0%, transparent 70%)',
+      }} />
+
       <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: '52px 20px 80px' }}>
 
-        <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '6px' }}>
+        <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '6px' }}>
           Money Tracker
         </p>
-        <h1 style={{ fontSize: '44px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 4px', fontVariantNumeric: 'tabular-nums' }}>
+        <h1 style={{ fontSize: '44px', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1, margin: '0 0 4px', fontVariantNumeric: 'tabular-nums' }}>
           {balances ? (
             <span style={{ color: balances.total < 0 ? '#ff6b6b' : '#fff' }}>
               {balances.total < 0 ? '-' : ''}{fmt(balances.total)}
@@ -260,7 +257,7 @@ export default function App() {
             <span style={{ color: 'rgba(255,255,255,0.2)' }}>Loading...</span>
           )}
         </h1>
-        <p style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginBottom: '28px' }}>Total balance</p>
+        <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginBottom: '28px', letterSpacing: '0.01em' }}>Total Balance</p>
 
         {error && (
           <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', fontSize: '12px', fontWeight: 500, borderRadius: '12px', padding: '12px 16px', marginBottom: '20px' }}>
@@ -284,15 +281,15 @@ export default function App() {
           style={{
             width: '100%', marginBottom: '32px',
             ...glassCard,
-            padding: '16px', fontSize: '15px', fontWeight: 600,
+            padding: '15px', fontSize: '15px', fontWeight: 700,
             color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'block', textAlign: 'center',
+            display: 'block', textAlign: 'center', letterSpacing: '-0.01em',
           }}
         >
           + Add Transaction
         </button>
 
-        <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}>
           Recent Transactions
         </p>
 
