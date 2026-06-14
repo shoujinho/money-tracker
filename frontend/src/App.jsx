@@ -6,14 +6,36 @@ const fmt = (n) =>
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const glassCard = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '20px',
+  position: 'relative',
+  overflow: 'hidden',
+}
+
+const glassHighlight = {
+  content: '""',
+  position: 'absolute',
+  top: 0, left: 0, right: 0,
+  height: '1px',
+  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+}
+
 function BalanceCard({ label, amount }) {
   const isNegative = amount < 0
   return (
-    <div className="rounded-xl p-5 flex flex-col gap-1 bg-zinc-900">
-      <span className="text-xs font-medium tracking-widest uppercase text-zinc-500">{label}</span>
-      <span className={`text-2xl font-semibold tabular-nums ${isNegative ? 'text-red-400' : 'text-white'}`}>
+    <div style={{ ...glassCard, padding: '16px 18px' }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)'
+      }} />
+      <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
+        {label}
+      </p>
+      <p style={{ fontSize: '22px', fontWeight: 500, color: isNegative ? '#ff6b6b' : '#fff', letterSpacing: '-0.02em', tabularNums: true }}>
         {isNegative ? '-' : ''}{fmt(amount)}
-      </span>
+      </p>
     </div>
   )
 }
@@ -21,6 +43,7 @@ function BalanceCard({ label, amount }) {
 function TransactionRow({ tx, onDelete }) {
   const isPositive = tx.amount >= 0
   const [confirming, setConfirming] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   const handleDelete = () => {
     if (!confirming) { setConfirming(true); return }
@@ -28,23 +51,43 @@ function TransactionRow({ tx, onDelete }) {
   }
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-zinc-800 last:border-0 group">
-      <div className={`w-1.5 h-8 rounded-full flex-shrink-0 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">{tx.description}</p>
-        <p className="text-xs text-zinc-500">{tx.date} · {tx.account_name}</p>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setConfirming(false) }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        padding: '12px 14px', borderRadius: '14px',
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        marginBottom: '2px', transition: 'background 0.15s',
+      }}
+    >
+      <div style={{
+        width: '3px', height: '32px', borderRadius: '2px', flexShrink: 0,
+        background: isPositive ? '#4fffb0' : '#ff6b6b'
+      }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(255,255,255,0.90)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {tx.description}
+        </p>
+        <p style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>
+          {tx.date} · {tx.account_name}
+        </p>
       </div>
-      <span className={`text-sm font-medium tabular-nums ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: isPositive ? '#4fffb0' : '#ff6b6b', fontVariantNumeric: 'tabular-nums' }}>
         {isPositive ? '+' : '-'}{fmt(tx.amount)}
       </span>
       <button
         onClick={handleDelete}
         onBlur={() => setConfirming(false)}
-        className={`text-xs px-2 py-1 rounded transition-all ${
-          confirming
-            ? 'bg-red-600 text-white'
-            : 'text-zinc-600 hover:text-zinc-400 opacity-0 group-hover:opacity-100'
-        }`}
+        style={{
+          fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
+          border: confirming ? 'none' : '1px solid rgba(255,255,255,0.12)',
+          background: confirming ? '#ff6b6b' : 'transparent',
+          color: confirming ? '#000' : 'rgba(255,255,255,0.4)',
+          cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
+          opacity: hovered ? 1 : 0,
+        }}
       >
         {confirming ? 'Confirm' : 'Delete'}
       </button>
@@ -68,13 +111,12 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
     if (!form.description.trim()) { setError('Description is required.'); return }
     const amount = parseFloat(form.amount)
     if (isNaN(amount) || form.amount === '') { setError('Enter a valid amount (e.g. 5000 or -250).'); return }
-
     setLoading(true)
     setError('')
     try {
       await onSave({ ...form, amount, account_id: parseInt(form.account_id) })
       onClose()
-    } catch (e) {
+    } catch {
       setError('Something went wrong. Try again.')
       setLoading(false)
     }
@@ -82,72 +124,80 @@ function AddTransactionModal({ accounts, onSave, onClose }) {
 
   const handleKey = (e) => { if (e.key === 'Enter') handleSubmit() }
 
+  const inputStyle = {
+    width: '100%', background: 'rgba(255,255,255,0.06)', color: '#fff',
+    fontSize: '14px', fontWeight: 500, borderRadius: '12px',
+    padding: '12px 14px', outline: 'none', boxSizing: 'border-box',
+    border: '1px solid rgba(255,255,255,0.12)', fontFamily: 'inherit',
+  }
+
+  const labelStyle = {
+    display: 'block', fontSize: '10px', fontWeight: 600,
+    letterSpacing: '0.1em', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)', marginBottom: '8px'
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-zinc-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 space-y-5 border border-zinc-800">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">Add Transaction</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white text-xl leading-none">x</button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.75)',
+    }}>
+      <div style={{
+        ...glassCard,
+        width: '100%', maxWidth: '480px',
+        padding: '28px 24px 36px',
+        borderBottom: 'none',
+        borderRadius: '28px 28px 0 0',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)'
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '17px', fontWeight: 600, color: '#fff', margin: 0 }}>Add Transaction</h2>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
         </div>
 
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Description</label>
-            <input
-              autoFocus
-              className="w-full bg-zinc-800 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-zinc-600"
-              placeholder="e.g. Lunch, Client Payment"
-              value={form.description}
-              onChange={e => set('description', e.target.value)}
-              onKeyDown={handleKey}
-            />
+            <label style={labelStyle}>Description</label>
+            <input autoFocus style={inputStyle} placeholder="e.g. Lunch, Client Payment" value={form.description} onChange={e => set('description', e.target.value)} onKeyDown={handleKey} />
           </div>
-
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">
-              Amount — positive = money in, negative = money out
-            </label>
-            <input
-              type="number"
-              step="any"
-              className="w-full bg-zinc-800 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-zinc-600"
-              placeholder="e.g. 5000 or -250"
-              value={form.amount}
-              onChange={e => set('amount', e.target.value)}
-              onKeyDown={handleKey}
-            />
+            <label style={labelStyle}>Amount — positive = in, negative = out</label>
+            <input type="number" step="any" style={inputStyle} placeholder="e.g. 5000 or -250" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={handleKey} />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Account</label>
-              <select
-                className="w-full bg-zinc-800 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-zinc-600"
-                value={form.account_id}
-                onChange={e => set('account_id', e.target.value)}
-              >
+              <label style={labelStyle}>Account</label>
+              <select style={inputStyle} value={form.account_id} onChange={e => set('account_id', e.target.value)}>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Date</label>
-              <input
-                type="date"
-                className="w-full bg-zinc-800 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-zinc-600"
-                value={form.date}
-                onChange={e => set('date', e.target.value)}
-              />
+              <label style={labelStyle}>Date</label>
+              <input type="date" style={inputStyle} value={form.date} onChange={e => set('date', e.target.value)} />
             </div>
           </div>
         </div>
 
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '12px', fontWeight: 500 }}>{error}</p>}
 
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-white text-black text-sm font-medium rounded-lg py-3 hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          style={{
+            width: '100%', marginTop: '20px',
+            background: loading ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '14px', color: '#fff',
+            fontSize: '15px', fontWeight: 600, padding: '16px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', position: 'relative', overflow: 'hidden',
+            transition: 'background 0.15s',
+          }}
         >
           {loading ? 'Saving...' : 'Save Transaction'}
         </button>
@@ -171,47 +221,54 @@ export default function App() {
       setTransactions(t)
       setError('')
     } catch {
-      setError('Could not connect to backend. Is the server running?')
+      setError('Could not reach database.')
     }
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (data) => {
-    await createTransaction(data)
-    await load()
+  const handleSave = async (data) => { await createTransaction(data); await load() }
+  const handleDelete = async (id) => { await deleteTransaction(id); await load() }
+
+  const bgStyle = {
+    minHeight: '100vh',
+    background: '#0a0a0f',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    color: '#fff',
   }
 
-  const handleDelete = async (id) => {
-    await deleteTransaction(id)
-    await load()
+  const ambientStyle = {
+    position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+    background: 'radial-gradient(ellipse 500px 500px at 70% 5%, rgba(120,80,255,0.15) 0%, transparent 70%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,180,255,0.08) 0%, transparent 70%)',
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-md mx-auto px-4 pt-10 pb-24">
+    <div style={bgStyle}>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <div style={ambientStyle} />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: '52px 20px 80px' }}>
 
-        <div className="mb-8">
-          <p className="text-xs tracking-widest uppercase text-zinc-600 mb-1">Money Tracker</p>
-          <h1 className="text-3xl font-semibold tabular-nums">
-            {balances ? (
-              <span className={balances.total < 0 ? 'text-red-400' : ''}>
-                {balances.total < 0 ? '-' : ''}{fmt(balances.total)}
-              </span>
-            ) : (
-              <span className="text-zinc-700">Loading...</span>
-            )}
-          </h1>
-          <p className="text-xs text-zinc-600 mt-1">Total balance</p>
-        </div>
+        <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '6px' }}>
+          Money Tracker
+        </p>
+        <h1 style={{ fontSize: '44px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1, margin: '0 0 4px', fontVariantNumeric: 'tabular-nums' }}>
+          {balances ? (
+            <span style={{ color: balances.total < 0 ? '#ff6b6b' : '#fff' }}>
+              {balances.total < 0 ? '-' : ''}{fmt(balances.total)}
+            </span>
+          ) : (
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>Loading...</span>
+          )}
+        </h1>
+        <p style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginBottom: '28px' }}>Total balance</p>
 
         {error && (
-          <div className="mb-6 bg-red-950 border border-red-800 text-red-300 text-xs rounded-lg px-4 py-3">
+          <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', fontSize: '12px', fontWeight: 500, borderRadius: '12px', padding: '12px 16px', marginBottom: '20px' }}>
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-8">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
           {balances?.accounts.map(a => (
             <BalanceCard key={a.id} label={a.name} amount={a.balance} />
           )) ?? (
@@ -224,31 +281,36 @@ export default function App() {
 
         <button
           onClick={() => setShowAdd(true)}
-          className="w-full bg-white text-black text-sm font-medium rounded-xl py-3.5 hover:bg-zinc-200 transition-colors mb-8"
+          style={{
+            width: '100%', marginBottom: '32px',
+            ...glassCard,
+            padding: '16px', fontSize: '15px', fontWeight: 600,
+            color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+            display: 'block', textAlign: 'center',
+          }}
         >
           + Add Transaction
         </button>
 
-        <div>
-          <p className="text-xs tracking-widest uppercase text-zinc-600 mb-4">Recent Transactions</p>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-zinc-600 text-center py-8">No transactions yet. Add your first one.</p>
-          ) : (
-            <div>
-              {transactions.map(tx => (
-                <TransactionRow key={tx.id} tx={tx} onDelete={handleDelete} />
-              ))}
-            </div>
-          )}
-        </div>
+        <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}>
+          Recent Transactions
+        </p>
+
+        {transactions.length === 0 ? (
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>
+            No transactions yet. Add your first one.
+          </p>
+        ) : (
+          <div>
+            {transactions.map(tx => (
+              <TransactionRow key={tx.id} tx={tx} onDelete={handleDelete} />
+            ))}
+          </div>
+        )}
       </div>
 
       {showAdd && (
-        <AddTransactionModal
-          accounts={accounts}
-          onSave={handleSave}
-          onClose={() => setShowAdd(false)}
-        />
+        <AddTransactionModal accounts={accounts} onSave={handleSave} onClose={() => setShowAdd(false)} />
       )}
     </div>
   )
