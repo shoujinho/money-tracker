@@ -727,7 +727,7 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={mono}>
-      <div style={{ minHeight: '100vh', background: C.base, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.primary, transition: 'background 0.4s ease, color 0.4s ease' }}>
+      <div style={{ minHeight: '100vh', background: C.base, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.primary, transition: 'background 1s ease, color 1s ease' }}>
         <style>{`
           @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
           @keyframes txSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -736,7 +736,7 @@ export default function App() {
           input[type=date]::-webkit-calendar-picker-indicator { filter: ${mono ? 'none' : 'invert(0.5)'}; }
           select option { background: ${mono ? '#fff' : '#16161f'}; color: ${mono ? '#1c1c1a' : '#fff'}; }
           input::placeholder { color: ${mono ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)'}; }
-          * { box-sizing: border-box; }
+          * { box-sizing: border-box; transition: background 1s ease, border-color 1s ease, color 1s ease, box-shadow 1s ease; } button, input, select { transition: background 1s ease, border-color 1s ease, color 1s ease; }
         `}</style>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
@@ -764,7 +764,7 @@ export default function App() {
                   <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: 0 }}>Updated just now</p>
                 </div>
                 {/* Theme toggle */}
-                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, marginTop: '4px', transition: 'all 0.3s ease' }} title={mono ? 'Switch to dark' : 'Switch to mono'}>
+                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, marginTop: '4px', transition: 'all 1s ease' }} title={mono ? 'Switch to dark' : 'Switch to mono'}>
                   {mono ? '◑' : '◐'}
                 </button>
               </div>
@@ -802,7 +802,7 @@ export default function App() {
                     {transactions.length} {transactions.length === 1 ? 'entry' : 'entries'} · {new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
-                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, transition: 'all 0.3s ease' }}>
+                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, transition: 'all 1s ease' }}>
                   {mono ? '◑' : '◐'}
                 </button>
               </div>
