@@ -434,19 +434,15 @@ function BottomBar({ screen, setScreen, onAdd }) {
           onTouchEnd={() => setAddPressed(false)}
           style={{
             width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0,
-            background: addPressed
-              ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
-              : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
-            border: '1px solid rgba(255,255,255,0.26)',
+            background: addPressed ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.18)',
             color: C.primary, fontSize: '30px', fontWeight: 300,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 24px rgba(0,0,0,0.5)',
+            boxShadow: 'none',
             transition: 'background 0.1s', position: 'relative',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '50% 50% 0 0' }} />
           +
         </button>
 
