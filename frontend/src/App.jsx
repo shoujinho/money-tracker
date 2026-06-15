@@ -266,8 +266,18 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
