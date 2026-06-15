@@ -479,12 +479,12 @@ function FAB({ onClick }) {
       onTouchEnd={() => setPressed(false)}
       style={{
         position: 'fixed', bottom: '32px', right: '28px', zIndex: 40,
-        width: '56px', height: '56px', borderRadius: '50%',
+        width: '48px', height: '48px', borderRadius: '50%',
         background: pressed
           ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
           : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
         border: '1px solid rgba(255,255,255,0.26)',
-        color: C.text1, fontSize: '26px', fontWeight: 300,
+        color: C.text1, fontSize: '22px', fontWeight: 300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', fontFamily: 'inherit',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.5)',
