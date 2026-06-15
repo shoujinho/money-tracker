@@ -411,7 +411,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   )
 }
 
-function NavBar({ screen, setScreen }) {
+function NavBar({ screen, setScreen, onAdd }) {
   const DashIcon = ({ active }) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" stroke={active ? C.text1 : C.text4}>
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
@@ -449,7 +449,7 @@ function NavBar({ screen, setScreen }) {
   }
 
   return (
-    <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
+    <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 40, display: 'flex', alignItems: 'center', gap: '10px' }}>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '2px',
         background: 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
@@ -463,6 +463,23 @@ function NavBar({ screen, setScreen }) {
         {navItem('dashboard', 'Dashboard', DashIcon)}
         {navItem('history', 'History', HistIcon)}
       </div>
+      <button
+        onClick={onAdd}
+        style={{
+          width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
+          border: '1px solid rgba(255,255,255,0.26)',
+          color: C.text1, fontSize: '22px', fontWeight: 300,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', fontFamily: 'inherit',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.5)',
+          overflow: 'hidden', position: 'relative',
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '50% 50% 0 0', pointerEvents: 'none' }} />
+        +
+      </button>
     </div>
   )
 }
@@ -596,8 +613,7 @@ export default function App() {
         )}
       </div>
 
-      <FAB onClick={() => setModal({ mode: 'add' })} />
-      <NavBar screen={screen} setScreen={setScreen} />
+<NavBar screen={screen} setScreen={setScreen} onAdd={() => setModal({ mode: 'add' })} />
 
       {modal && (
         <TransactionModal
