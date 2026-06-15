@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { getBalances, getAccounts, getTransactions, createTransaction, deleteTransaction, updateTransaction } from './api'
+
+// ── THEME CONTEXT ──────────────────────────────────────────────
+const ThemeCtx = createContext(false)
+const useMono = () => useContext(ThemeCtx)
 
 // ── DESIGN TOKENS ──────────────────────────────────────────────
 const T = {
@@ -13,7 +17,8 @@ const T = {
   hero:       { size: '36px', weight: 600, tracking: '-0.04em' },
 }
 
-const C = {
+// Dark mode colors
+const CD = {
   primary:   'rgba(255,255,255,1.0)',
   secondary: 'rgba(255,255,255,0.55)',
   tertiary:  'rgba(255,255,255,0.30)',
@@ -23,7 +28,23 @@ const C = {
   base:      '#0a0a0f',
 }
 
-const S = {
+// Mono mode colors
+const CM = {
+  primary:   '#1c1c1a',
+  secondary: '#6b6b68',
+  tertiary:  '#a8a8a4',
+  muted:     '#c8c8c4',
+  income:    '#1c1c1a',   // bold
+  expense:   '#888886',   // regular
+  base:      '#f7f6f3',
+  inverted:  '#1c1c1a',   // for weekly/monthly card bg
+  invertedText: '#f7f6f3',
+  invertedMuted: '#5a5a56',
+  invertedSecondary: '#8a8a86',
+}
+
+// Surfaces — dark
+const SD = {
   card: {
     background: 'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.03) 100%)',
     border: '1px solid rgba(255,255,255,0.18)',
@@ -44,10 +65,40 @@ const S = {
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 40px 80px rgba(0,0,0,0.6)',
   },
   input: {
-    background: 'linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.05) 100%)',
-    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)',
+    border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: '12px',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+  },
+}
+
+// Surfaces — mono
+const SM = {
+  card: {
+    background: '#ffffff',
+    border: '1px solid #1c1c1a',
+    borderRadius: '20px',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: 'none',
+  },
+  summaryCard: {
+    background: '#1c1c1a',
+    border: '1px solid #1c1c1a',
+    borderRadius: '20px',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: 'none',
+  },
+  modal: {
+    background: '#f7f6f3',
+    border: '1px solid #1c1c1a',
+    borderRadius: '24px',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
+  },
+  input: {
+    background: '#ffffff',
+    border: '1px solid rgba(0,0,0,0.18)',
+    borderRadius: '12px',
   },
 }
 
@@ -147,22 +198,29 @@ function FloatHighlight() {
 }
 
 function SkeletonCard() {
+  const mono = useMono()
+  const bg = mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'
+  const cardStyle = mono ? SM.card : SD.card
   return (
-    <div style={{ ...S.card, padding: SP.lg }}>
-      <CardHighlight />
-      <div style={{ height: '12px', width: '40%', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', marginBottom: '14px', animation: 'pulse 1.5s ease-in-out infinite' }} />
-      <div style={{ height: '16px', width: '65%', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+    <div style={{ ...cardStyle, padding: SP.lg }}>
+      {!mono && <CardHighlight />}
+      <div style={{ height: '12px', width: '40%', borderRadius: '6px', background: bg, marginBottom: '14px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: '16px', width: '65%', borderRadius: '6px', background: bg, animation: 'pulse 1.5s ease-in-out infinite' }} />
     </div>
   )
 }
 
 function BalanceCard({ label, amount }) {
+  const mono = useMono()
+  const C = mono ? CM : CD
+  const cardStyle = mono ? SM.card : SD.card
   const isNeg = amount < 0
+  const amtColor = mono ? C.primary : (isNeg ? C.amber : C.primary)
   return (
-    <div style={{ ...S.card, padding: SP.lg }}>
-      <CardHighlight />
+    <div style={{ ...cardStyle, padding: SP.lg }}>
+      {!mono && <CardHighlight />}
       <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: C.tertiary, margin: `0 0 ${SP.sm}`, position: 'relative', zIndex: 1 }}>{label}</p>
-      <p style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color: isNeg ? C.amber : C.primary, fontVariantNumeric: 'tabular-nums', margin: 0, position: 'relative', zIndex: 1 }}>
+      <p style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color: amtColor, fontVariantNumeric: 'tabular-nums', margin: 0, position: 'relative', zIndex: 1 }}>
         {isNeg ? '-' : ''}{fmt(amount)}
       </p>
     </div>
@@ -170,30 +228,45 @@ function BalanceCard({ label, amount }) {
 }
 
 function SummaryCard({ title, rangeLabel, moneyIn, moneyOut, net }) {
+  const mono = useMono()
+  const C = mono ? CM : CD
+  const cardStyle = mono ? SM.summaryCard : SD.card
+  // In mono, card is inverted (dark bg, light text)
+  const titleColor = mono ? CM.invertedSecondary : C.tertiary
+  const rangeColor = mono ? CM.invertedMuted : C.muted
+  const netColor = mono ? CM.invertedText : (net < 0 ? C.amber : C.primary)
+  const netLblColor = mono ? CM.invertedMuted : C.muted
+  const divColor = mono ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.08)'
+  const inColor = mono ? CM.invertedText : C.mint
+  const inWeight = mono ? 700 : T.bodyStrong.weight
+  const outColor = mono ? CM.expense : C.amber
+  const outWeight = mono ? 400 : T.bodyStrong.weight
+  const ioLblColor = mono ? CM.invertedMuted : C.muted
+
   return (
-    <div style={{ ...S.card, padding: SP.lg, display: 'flex', flexDirection: 'column', gap: SP.md }}>
-      <CardHighlight />
+    <div style={{ ...cardStyle, padding: SP.lg, display: 'flex', flexDirection: 'column', gap: SP.md }}>
+      {!mono && <CardHighlight />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
         <div>
-          <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: C.tertiary, margin: 0 }}>{title}</p>
-          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: '2px 0 0' }}>{rangeLabel}</p>
+          <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: titleColor, margin: 0 }}>{title}</p>
+          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: rangeColor, margin: '2px 0 0' }}>{rangeLabel}</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: T.display.size, fontWeight: T.display.weight, letterSpacing: T.display.tracking, color: net < 0 ? C.amber : C.primary, fontVariantNumeric: 'tabular-nums', lineHeight: 1, margin: 0 }}>
+          <p style={{ fontSize: T.display.size, fontWeight: mono ? 700 : T.display.weight, letterSpacing: T.display.tracking, color: netColor, fontVariantNumeric: 'tabular-nums', lineHeight: 1, margin: 0 }}>
             {net < 0 ? '-' : '+'}{fmtK(net)}
           </p>
-          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: C.muted, margin: '2px 0 0' }}>Net</p>
+          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: netLblColor, margin: '2px 0 0' }}>Net</p>
         </div>
       </div>
-      <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', position: 'relative', zIndex: 1 }} />
+      <div style={{ height: '1px', background: divColor, position: 'relative', zIndex: 1 }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
         <div>
-          <p style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color: C.mint, fontVariantNumeric: 'tabular-nums', margin: 0 }}>+{fmtK(moneyIn)}</p>
-          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: C.muted, margin: '2px 0 0' }}>In</p>
+          <p style={{ fontSize: T.bodyStrong.size, fontWeight: inWeight, letterSpacing: T.bodyStrong.tracking, color: inColor, fontVariantNumeric: 'tabular-nums', margin: 0 }}>+{fmtK(moneyIn)}</p>
+          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: ioLblColor, margin: '2px 0 0' }}>In</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color: C.amber, fontVariantNumeric: 'tabular-nums', margin: 0 }}>-{fmtK(moneyOut)}</p>
-          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: C.muted, margin: '2px 0 0' }}>Out</p>
+          <p style={{ fontSize: T.bodyStrong.size, fontWeight: outWeight, letterSpacing: T.bodyStrong.tracking, color: outColor, fontVariantNumeric: 'tabular-nums', margin: 0 }}>-{fmtK(moneyOut)}</p>
+          <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: ioLblColor, margin: '2px 0 0' }}>Out</p>
         </div>
       </div>
     </div>
@@ -201,18 +274,35 @@ function SummaryCard({ title, rangeLabel, moneyIn, moneyOut, net }) {
 }
 
 function TransactionRow({ tx, onEdit, isNew }) {
+  const mono = useMono()
+  const C = mono ? CM : CD
   const isPos = Number(tx.amount) >= 0
   const [pressed, setPressed] = useState(false)
-  const color = isPos ? C.mint : C.amber
-  const tintBg = isPos
+
+  // Dark mode styles
+  const darkColor = isPos ? CD.mint : CD.amber
+  const darkTintBg = isPos
     ? `linear-gradient(160deg, rgba(79,255,176,${pressed ? '0.12' : '0.08'}) 0%, rgba(79,255,176,0.03) 100%)`
     : `linear-gradient(160deg, rgba(255,176,50,${pressed ? '0.12' : '0.08'}) 0%, rgba(255,176,50,0.03) 100%)`
-  const tintBorder = isPos ? 'rgba(79,255,176,0.14)' : 'rgba(255,176,50,0.14)'
-  const tintHL = isPos ? 'rgba(79,255,176,0.2)' : 'rgba(255,176,50,0.2)'
-  const barTop = isPos ? '#7fffcc' : '#ffd080'
+  const darkBorder = isPos ? 'rgba(79,255,176,0.14)' : 'rgba(255,176,50,0.14)'
+  const darkHL = isPos ? 'rgba(79,255,176,0.2)' : 'rgba(255,176,50,0.2)'
+  const darkBarTop = isPos ? '#7fffcc' : '#ffd080'
+  const darkBarBot = isPos ? CD.mint : CD.amber
+
+  // Mono mode styles
+  const monoBg = pressed ? (isPos ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.02)') : '#ffffff'
+  const monoBorder = isPos ? '1px solid #1c1c1a' : '1px solid rgba(0,0,0,0.12)'
+  const monoBar = isPos ? '#1c1c1a' : '#c8c8c4'
+  const monoAmtColor = isPos ? CM.income : CM.expense
+  const monoAmtWeight = isPos ? 700 : 400
+
   const newAnimation = isNew
     ? `txSlideIn 0.35s cubic-bezier(0.32, 0.72, 0, 1) both, ${isPos ? 'txGlowMint' : 'txGlowAmber'} 1.4s ease 0.35s both`
     : undefined
+
+  const rowStyle = mono
+    ? { display: 'flex', alignItems: 'center', gap: SP.md, padding: '13px 14px', borderRadius: R.md, background: monoBg, border: monoBorder, boxShadow: 'none', marginBottom: '4px', transition: 'background 0.1s', cursor: 'pointer', position: 'relative', overflow: 'hidden', animation: newAnimation }
+    : { display: 'flex', alignItems: 'center', gap: SP.md, padding: '13px 14px', borderRadius: R.md, background: darkTintBg, border: `1px solid ${darkBorder}`, boxShadow: `inset 0 1px 0 ${darkHL}`, marginBottom: '4px', transition: 'background 0.1s', cursor: 'pointer', position: 'relative', overflow: 'hidden', animation: newAnimation }
 
   return (
     <div
@@ -222,15 +312,15 @@ function TransactionRow({ tx, onEdit, isNew }) {
       onMouseLeave={() => setPressed(false)}
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: SP.md, padding: '13px 14px', borderRadius: R.md, background: tintBg, border: `1px solid ${tintBorder}`, boxShadow: `inset 0 1px 0 ${tintHL}`, marginBottom: '4px', transition: 'background 0.1s', cursor: 'pointer', position: 'relative', overflow: 'hidden', animation: newAnimation }}
+      style={rowStyle}
     >
-      <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: `linear-gradient(90deg, transparent, ${tintHL}, transparent)` }} />
-      <div style={{ width: '3px', height: '30px', borderRadius: '2px', flexShrink: 0, background: `linear-gradient(180deg, ${barTop}, ${color})` }} />
+      {!mono && <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: `linear-gradient(90deg, transparent, ${darkHL}, transparent)` }} />}
+      <div style={{ width: '3px', height: '30px', borderRadius: '2px', flexShrink: 0, background: mono ? monoBar : `linear-gradient(180deg, ${darkBarTop}, ${darkBarBot})` }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.description}</p>
-        <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.tertiary, margin: '3px 0 0' }}>{tx.account_name}</p>
+        <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: mono ? CM.primary : CD.primary, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.description}</p>
+        <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: mono ? CM.tertiary : CD.tertiary, margin: '3px 0 0' }}>{tx.account_name}</p>
       </div>
-      <span style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: T.bodyStrong.size, fontWeight: mono ? monoAmtWeight : T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, color: mono ? monoAmtColor : darkColor, fontVariantNumeric: 'tabular-nums' }}>
         {isPos ? '+' : '-'}{fmt(tx.amount)}
       </span>
     </div>
@@ -238,14 +328,20 @@ function TransactionRow({ tx, onEdit, isNew }) {
 }
 
 function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false, newTxId }) {
+  const mono = useMono()
   const net = getDailyNet(txs)
   const isPos = net >= 0
+  const netColor = mono
+    ? (isPos ? CM.income : CM.expense)
+    : (isPos ? 'rgba(79,255,176,0.55)' : 'rgba(255,176,50,0.55)')
+  const netWeight = mono ? (isPos ? 700 : 400) : T.eyebrow.weight
+
   return (
     <div style={{ marginBottom: SP.xl }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: `0 2px ${SP.sm}` }}>
-        <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: C.tertiary, margin: 0 }}>{dateLabel}</p>
+        <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: mono ? CM.tertiary : CD.tertiary, margin: 0 }}>{dateLabel}</p>
         {showDailyNet && (
-          <span style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, color: isPos ? 'rgba(79,255,176,0.55)' : 'rgba(255,176,50,0.55)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: T.eyebrow.size, fontWeight: netWeight, color: netColor, fontVariantNumeric: 'tabular-nums' }}>
             {isPos ? '+' : '-'}{fmt(net)}
           </span>
         )}
@@ -257,6 +353,8 @@ function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false, newTxId }) {
 
 // ── CALENDAR PICKER ────────────────────────────────────────────
 function CalendarPicker({ value, onChange, open, onToggle }) {
+  const mono = useMono()
+  const C = mono ? CM : CD
   const parseDate = (str) => {
     const [y, m, d] = str.split('-').map(Number)
     return { year: y, month: m - 1, day: d }
@@ -298,41 +396,41 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
   const remaining = 42 - cells.length
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' })
 
-  const handleDaySelect = (dateStr) => {
-    onChange(dateStr)
-    onToggle() // collapse after selection
-  }
+  const handleDaySelect = (dateStr) => { onChange(dateStr); onToggle() }
+
+  const inputStyle = mono
+    ? { width: '100%', background: '#fff', border: open ? '1px solid #1c1c1a' : '1px solid rgba(0,0,0,0.18)', borderRadius: R.sm, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }
+    : { width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: open ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }
+
+  const calBg = mono
+    ? { background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: R.md, overflow: 'hidden', position: 'relative', marginTop: '8px' }
+    : { background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: R.md, overflow: 'hidden', position: 'relative', marginTop: '8px' }
+
+  const navBtnStyle = mono
+    ? { width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.12)', color: CM.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+    : { width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: CD.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 
   return (
     <div>
-      {/* Collapsed — styled date display */}
-      <button
-        onClick={onToggle}
-        style={{ width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: open ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}
-      >
-        <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
-        <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, position: 'relative', zIndex: 1 }}>{formatDisplay(value)}</span>
-        <span style={{ fontSize: '11px', color: C.muted, position: 'relative', zIndex: 1, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
+      <button onClick={onToggle} style={inputStyle}>
+        <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: mono ? CM.primary : CD.primary, position: 'relative', zIndex: 1 }}>{formatDisplay(value)}</span>
+        <span style={{ fontSize: '11px', color: mono ? CM.muted : CD.muted, position: 'relative', zIndex: 1, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
       </button>
 
-      {/* Expanded — calendar grid */}
       {open && (
-        <div style={{ marginTop: '8px', background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: R.md, overflow: 'hidden', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent)' }} />
-          {/* Header */}
+        <div style={calBg}>
+          {!mono && <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent)' }} />}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 12px 8px' }}>
-            <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.primary, letterSpacing: T.label.tracking }}>{MONTHS[viewMonth]} {viewYear}</span>
+            <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.primary : CD.primary, letterSpacing: T.label.tracking }}>{MONTHS[viewMonth]} {viewYear}</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[['‹', prevMonth], ['›', nextMonth]].map(([icon, fn]) => (
-                <button key={icon} onClick={fn} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: C.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</button>
+                <button key={icon} onClick={fn} style={navBtnStyle}>{icon}</button>
               ))}
             </div>
           </div>
-          {/* Day labels */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 8px', marginBottom: '4px' }}>
-            {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: C.muted, padding: '2px 0' }}>{d}</div>)}
+            {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: mono ? CM.muted : CD.muted, padding: '2px 0' }}>{d}</div>)}
           </div>
-          {/* Day grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', padding: '0 8px 10px' }}>
             {cells.map((cell, i) => {
               const dateStr = cell.type === 'cur' ? toStr(viewYear, viewMonth, cell.day)
@@ -341,8 +439,14 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
               const isSelected = dateStr === value
               const isToday = dateStr === today
               const isCur = cell.type === 'cur'
+              const textColor = mono
+                ? (isSelected ? '#f7f6f3' : isToday ? CM.primary : isCur ? CM.secondary : CM.muted)
+                : (isSelected ? CD.base : isToday ? CD.primary : isCur ? CD.secondary : CD.muted)
+              const bg = mono
+                ? (isSelected ? '#1c1c1a' : isToday ? 'rgba(0,0,0,0.08)' : 'transparent')
+                : (isSelected ? CD.primary : isToday ? 'rgba(255,255,255,0.12)' : 'transparent')
               return (
-                <div key={i} onClick={() => handleDaySelect(dateStr)} style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', fontSize: '12px', fontWeight: isSelected ? 700 : isToday ? 600 : 500, color: isSelected ? C.base : isToday ? C.primary : isCur ? C.secondary : C.muted, background: isSelected ? C.primary : isToday ? 'rgba(255,255,255,0.12)' : 'transparent', transition: 'background 0.1s' }}>
+                <div key={i} onClick={() => handleDaySelect(dateStr)} style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', fontSize: '12px', fontWeight: isSelected ? 700 : isToday ? 600 : 500, color: textColor, background: bg, transition: 'background 0.1s' }}>
                   {cell.day}
                 </div>
               )
@@ -356,6 +460,7 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
 
 // ── MODAL ──────────────────────────────────────────────────────
 function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing }) {
+  const mono = useMono()
   const isEdit = mode === 'edit'
   const [form, setForm] = useState({
     date: tx?.date ?? todayStr(),
@@ -369,9 +474,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [calOpen, setCalOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    requestAnimationFrame(() => setMounted(true))
-  }, [])
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -390,7 +493,6 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  // Cycle through accounts on tap
   const cycleAccount = () => {
     const ids = accounts.map(a => a.id)
     const currentIndex = ids.indexOf(parseInt(form.account_id))
@@ -415,86 +517,90 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   }
 
   const handleDateToggle = () => {
-    // Dismiss keyboard first, then open calendar
     if (document.activeElement) document.activeElement.blur()
     setCalOpen(o => !o)
   }
 
-  const fieldBase = {
-    width: '100%',
-    background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: R.sm,
-    padding: '14px 16px',
-    color: C.primary,
-    fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking,
-    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-    WebkitAppearance: 'none', appearance: 'none',
-  }
-
-  const inputStyle = { ...fieldBase }
+  const fieldBase = mono
+    ? { width: '100%', background: '#ffffff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: R.sm, padding: '14px 16px', color: CM.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', WebkitAppearance: 'none', appearance: 'none' }
+    : { width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', color: CD.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', WebkitAppearance: 'none', appearance: 'none' }
 
   const labelStyle = {
     display: 'block',
     fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking,
-    color: C.tertiary, marginBottom: SP.sm,
+    color: mono ? CM.secondary : CD.tertiary, marginBottom: SP.sm,
   }
 
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
+  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
+  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
+
+  const modalStyle = mono
+    ? { width: '100%', maxWidth: '400px', ...SM.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }
+    : { width: '100%', maxWidth: '400px', ...SD.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }
+
+  const saveBtnStyle = {
+    width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1,
+    background: loading ? (mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)') : (mono ? '#1c1c1a' : 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)'),
+    border: 'none', borderRadius: R.sm,
+    color: loading ? (mono ? CM.muted : 'rgba(0,0,0,0.3)') : (mono ? '#f7f6f3' : CD.base),
+    fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking,
+    padding: '16px', cursor: loading ? 'not-allowed' : 'pointer',
+    fontFamily: 'inherit', overflow: 'hidden',
+    boxShadow: (loading || mono) ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)',
+    transition: 'background 0.15s',
+  }
+
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)', padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
-      <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)', transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
+      <div style={modalStyle}>
         {/* Drag handle */}
-        <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
-        {/* Highlights */}
-        <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)', borderRadius: '24px 24px 0 0', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.20), transparent 60%)' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+        <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
+
+        {/* Dark mode highlights */}
+        {!mono && <>
+          <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)', borderRadius: '24px 24px 0 0', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.20), transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+        </>}
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: SP.xl, position: 'relative', zIndex: 1 }}>
-          <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: C.primary, margin: 0 }}>
+          <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: mono ? CM.primary : CD.primary, margin: 0 }}>
             {isEdit ? 'Edit Entry' : 'New Entry'}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm }}>
             {isEdit && (
-              <button onClick={handleDelete} style={{ width: '34px', height: '34px', borderRadius: '50%', background: confirmDelete ? 'rgba(255,176,50,0.2)' : 'rgba(255,176,50,0.08)', border: `1px solid ${confirmDelete ? 'rgba(255,176,50,0.5)' : 'rgba(255,176,50,0.2)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={confirmDelete ? C.amber : 'rgba(255,176,50,0.7)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <button onClick={handleDelete} style={{ width: '34px', height: '34px', borderRadius: '50%', background: confirmDelete ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,176,50,0.2)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,176,50,0.08)'), border: confirmDelete ? (mono ? '1px solid rgba(0,0,0,0.3)' : '1px solid rgba(255,176,50,0.5)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,176,50,0.2)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={mono ? CM.secondary : (confirmDelete ? CD.amber : 'rgba(255,176,50,0.7)')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
               </button>
             )}
-            <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: C.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
+            <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
           </div>
         </div>
 
         {/* Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: SP.lg, position: 'relative', zIndex: 1 }}>
-
-          {/* GROUP 1 — What */}
           <div>
             <label style={labelStyle}>Description</label>
-            <input style={inputStyle} placeholder="e.g. Lunch, Client Payment" value={form.description} onChange={e => set('description', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+            <input style={fieldBase} placeholder="e.g. Lunch, Client Payment" value={form.description} onChange={e => set('description', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
           <div>
             <label style={labelStyle}>Amount</label>
-            <input type="number" step="any" style={inputStyle} placeholder="+ Income  /  − Expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+            <input type="number" step="any" style={fieldBase} placeholder="+ Income  /  − Expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
 
-          {/* Divider between groups */}
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
+          <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
 
-          {/* GROUP 2 — Where & When */}
           <div>
             <label style={labelStyle}>Account</label>
-            <button
-              onClick={cycleAccount}
-              style={{ ...fieldBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', overflow: 'hidden' }}
-            >
-              <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary }}>{currentAccount?.name}</span>
-              <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.muted }}>↻</span>
+            <button onClick={cycleAccount} style={{ ...fieldBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', overflow: 'hidden' }}>
+              <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: mono ? CM.primary : CD.primary }}>{currentAccount?.name}</span>
+              <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.muted : CD.muted }}>↻</span>
             </button>
           </div>
           <div>
@@ -503,25 +609,11 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
           </div>
         </div>
 
-        {error && <p style={{ fontSize: T.eyebrow.size, color: C.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>{error}</p>}
-        {confirmDelete && !error && <p style={{ fontSize: T.eyebrow.size, color: C.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>Tap the trash icon again to confirm.</p>}
+        {error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>{error}</p>}
+        {confirmDelete && !error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>Tap the trash icon again to confirm.</p>}
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{
-            width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1,
-            background: loading ? 'rgba(255,255,255,0.1)' : 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)',
-            border: 'none', borderRadius: R.sm,
-            color: loading ? 'rgba(0,0,0,0.3)' : C.base,
-            fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking,
-            padding: '16px', cursor: loading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', overflow: 'hidden',
-            boxShadow: loading ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)',
-            transition: 'background 0.15s',
-          }}
-        >
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'rgba(255,255,255,1)' }} />
+        <button onClick={handleSubmit} disabled={loading} style={saveBtnStyle}>
+          {!mono && <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'rgba(255,255,255,1)' }} />}
           {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Entry'}
         </button>
       </div>
@@ -531,61 +623,34 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
 
 // ── BOTTOM BAR ─────────────────────────────────────────────────
 function BottomBar({ screen, setScreen, onAdd }) {
+  const mono = useMono()
   const [addPressed, setAddPressed] = useState(false)
 
+  const fabStyle = mono
+    ? { width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0, background: addPressed ? '#333330' : '#1c1c1a', border: 'none', color: '#f7f6f3', fontSize: '30px', fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', boxShadow: 'none', transition: 'background 0.1s', position: 'relative' }
+    : { width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0, background: addPressed ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)' : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)', border: '1px solid rgba(255,255,255,0.26)', color: CD.primary, fontSize: '30px', fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.1s', position: 'relative' }
+
+  const dashColor = screen === 'dashboard' ? (mono ? CM.primary : CD.primary) : (mono ? CM.muted : CD.muted)
+  const histColor = screen === 'history' ? (mono ? CM.primary : CD.primary) : (mono ? CM.muted : CD.muted)
+  const navBg = mono ? `linear-gradient(180deg, transparent 0%, ${CM.base} 38%)` : `linear-gradient(180deg, transparent 0%, ${CD.base} 38%)`
+
   return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-      background: `linear-gradient(180deg, transparent 0%, ${C.base} 38%)`,
-      paddingBottom: '28px',
-    }}>
-      <div style={{
-        maxWidth: '480px', margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: '8px',
-      }}>
-        {/* Dashboard — bare icon, no box */}
-        <button
-          onClick={() => setScreen('dashboard')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" stroke={screen === 'dashboard' ? C.primary : C.muted}>
+    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40, background: navBg, paddingBottom: '28px' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <button onClick={() => setScreen('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" stroke={dashColor}>
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
           </svg>
         </button>
-
-        {/* Add — glossy circle, 68px */}
-        <button
-          onClick={onAdd}
-          onMouseDown={() => setAddPressed(true)}
-          onMouseUp={() => setAddPressed(false)}
-          onMouseLeave={() => setAddPressed(false)}
-          onTouchStart={() => setAddPressed(true)}
-          onTouchEnd={() => setAddPressed(false)}
-          style={{
-            width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0,
-            background: addPressed
-              ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
-              : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
-            border: '1px solid rgba(255,255,255,0.26)',
-            color: C.primary, fontSize: '30px', fontWeight: 300,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 24px rgba(0,0,0,0.5)',
-            transition: 'background 0.1s', position: 'relative',
-          }}
-        >
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '50% 50% 0 0' }} />
+        <button onClick={onAdd} onMouseDown={() => setAddPressed(true)} onMouseUp={() => setAddPressed(false)} onMouseLeave={() => setAddPressed(false)} onTouchStart={() => setAddPressed(true)} onTouchEnd={() => setAddPressed(false)} style={fabStyle}>
+          {!mono && <>
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '50% 50% 0 0' }} />
+          </>}
           +
         </button>
-
-        {/* History — bare icon, no box */}
-        <button
-          onClick={() => setScreen('history')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke={screen === 'history' ? C.primary : C.muted}>
+        <button onClick={() => setScreen('history')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke={histColor}>
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
@@ -605,6 +670,19 @@ export default function App() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [newTxId, setNewTxId] = useState(null)
+  const [mono, setMono] = useState(() => {
+    try { return localStorage.getItem('theme') === 'mono' } catch { return false }
+  })
+
+  const toggleMono = () => {
+    setMono(prev => {
+      const next = !prev
+      try { localStorage.setItem('theme', next ? 'mono' : 'dark') } catch {}
+      return next
+    })
+  }
+
+  const C = mono ? CM : CD
 
   const load = useCallback(async () => {
     try {
@@ -648,98 +726,113 @@ export default function App() {
   const allGrouped = groupByDate(transactions)
 
   return (
-    <div style={{ minHeight: '100vh', background: C.base, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.primary }}>
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-        @keyframes txSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes txGlowMint { 0% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } 30% { box-shadow: 0 0 0 4px rgba(79,255,176,0.25), inset 0 0 12px rgba(79,255,176,0.15); } 100% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } }
-        @keyframes txGlowAmber { 0% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } 30% { box-shadow: 0 0 0 4px rgba(255,176,50,0.25), inset 0 0 12px rgba(255,176,50,0.15); } 100% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } }
-        input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
-        select option { background: #16161f; color: #fff; }
-        input::placeholder { color: rgba(255,255,255,0.2); }
-        * { box-sizing: border-box; }
-      `}</style>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <ThemeCtx.Provider value={mono}>
+      <div style={{ minHeight: '100vh', background: C.base, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.primary, transition: 'background 0.4s ease, color 0.4s ease' }}>
+        <style>{`
+          @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+          @keyframes txSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes txGlowMint { 0% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } 30% { box-shadow: 0 0 0 4px rgba(79,255,176,0.25), inset 0 0 12px rgba(79,255,176,0.15); } 100% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } }
+          @keyframes txGlowAmber { 0% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } 30% { box-shadow: 0 0 0 4px rgba(255,176,50,0.25), inset 0 0 12px rgba(255,176,50,0.15); } 100% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } }
+          input[type=date]::-webkit-calendar-picker-indicator { filter: ${mono ? 'none' : 'invert(0.5)'}; }
+          select option { background: ${mono ? '#fff' : '#16161f'}; color: ${mono ? '#1c1c1a' : '#fff'}; }
+          input::placeholder { color: ${mono ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)'}; }
+          * { box-sizing: border-box; }
+        `}</style>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-      {/* Ambient glow */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 500px 600px at 50% 5%, rgba(20,180,140,0.20) 0%, transparent 65%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,200,120,0.07) 0%, transparent 70%)' }} />
+        {/* Ambient glow — dark mode only */}
+        {!mono && <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 500px 600px at 50% 5%, rgba(20,180,140,0.20) 0%, transparent 65%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,200,120,0.07) 0%, transparent 70%)' }} />}
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: `${SP['2xl']} ${SP.xl} 140px` }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: `${SP['2xl']} ${SP.xl} 140px` }}>
 
-        {/* ── DASHBOARD ── */}
-        {screen === 'dashboard' && (
-          <>
-            {/* Hero zone */}
-            <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: `0 0 ${SP.sm}` }}>{todayLabel()}</p>
-            {loading
-              ? <div style={{ height: '36px', width: '55%', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', marginBottom: SP.sm, animation: 'pulse 1.5s ease-in-out infinite' }} />
-              : <h1 style={{ fontSize: T.hero.size, fontWeight: T.hero.weight, letterSpacing: T.hero.tracking, lineHeight: 1, margin: `0 0 4px`, fontVariantNumeric: 'tabular-nums' }}>
-                  <span style={{ color: (balances?.total ?? 0) < 0 ? C.amber : C.primary }}>
-                    {(balances?.total ?? 0) < 0 ? '-' : ''}{fmt(balances?.total ?? 0)}
-                  </span>
-                </h1>
-            }
-            <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.secondary, margin: `0 0 4px` }}>Total Balance</p>
-            <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: `0 0 ${SP.xl}` }}>Updated just now</p>
+          {/* ── DASHBOARD ── */}
+          {screen === 'dashboard' && (
+            <>
+              {/* Hero zone */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: SP.xl }}>
+                <div>
+                  <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: `0 0 ${SP.sm}` }}>{todayLabel()}</p>
+                  {loading
+                    ? <div style={{ height: '36px', width: '55%', borderRadius: '8px', background: mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', marginBottom: SP.sm, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    : <h1 style={{ fontSize: T.hero.size, fontWeight: T.hero.weight, letterSpacing: T.hero.tracking, lineHeight: 1, margin: `0 0 4px`, fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ color: C.primary }}>
+                          {(balances?.total ?? 0) < 0 ? '-' : ''}{fmt(balances?.total ?? 0)}
+                        </span>
+                      </h1>
+                  }
+                  <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.secondary, margin: `0 0 4px` }}>Total Balance</p>
+                  <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: 0 }}>Updated just now</p>
+                </div>
+                {/* Theme toggle */}
+                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, marginTop: '4px', transition: 'all 0.3s ease' }} title={mono ? 'Switch to dark' : 'Switch to mono'}>
+                  {mono ? '◑' : '◐'}
+                </button>
+              </div>
 
-            {error && <div style={{ background: 'rgba(255,176,50,0.1)', border: '1px solid rgba(255,176,50,0.3)', color: C.amber, fontSize: T.eyebrow.size, fontWeight: 500, borderRadius: R.sm, padding: `${SP.md} ${SP.lg}`, marginBottom: SP.lg }}>{error}</div>}
+              {error && <div style={{ background: mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,176,50,0.1)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,176,50,0.3)', color: mono ? CM.secondary : CD.amber, fontSize: T.eyebrow.size, fontWeight: 500, borderRadius: R.sm, padding: `${SP.md} ${SP.lg}`, marginBottom: SP.lg }}>{error}</div>}
 
-            {/* Account cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SP.sm, marginBottom: SP.sm }}>
-              {loading ? <><SkeletonCard /><SkeletonCard /></> : balances?.accounts.map(a => <BalanceCard key={a.id} label={a.name} amount={a.balance} />)}
-            </div>
+              {/* Account cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SP.sm, marginBottom: SP.sm }}>
+                {loading ? <><SkeletonCard /><SkeletonCard /></> : balances?.accounts.map(a => <BalanceCard key={a.id} label={a.name} amount={a.balance} />)}
+              </div>
 
-            {/* Weekly summary */}
-            {!loading && <SummaryCard title="This Week" rangeLabel={weekly.rangeLabel} moneyIn={weekly.moneyIn} moneyOut={weekly.moneyOut} net={weekly.net} />}
+              {/* Weekly summary */}
+              {!loading && <SummaryCard title="This Week" rangeLabel={weekly.rangeLabel} moneyIn={weekly.moneyIn} moneyOut={weekly.moneyOut} net={weekly.net} />}
 
-            {/* Divider */}
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: `${SP.xl} 0` }} />
+              {/* Divider */}
+              <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.07)', margin: `${SP.xl} 0` }} />
 
-            {/* Recent transactions */}
-            <p style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: C.secondary, margin: `0 0 ${SP.lg}` }}>Recent</p>
+              {/* Recent transactions */}
+              <p style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: C.secondary, margin: `0 0 ${SP.lg}` }}>Recent</p>
 
-            {!loading && transactions.length === 0
-              ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
-              : Object.entries(recentGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={false} newTxId={newTxId} />)
-            }
-          </>
-        )}
+              {!loading && transactions.length === 0
+                ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
+                : Object.entries(recentGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={false} newTxId={newTxId} />)
+              }
+            </>
+          )}
 
-        {/* ── HISTORY ── */}
-        {screen === 'history' && (
-          <>
-            <div style={{ marginBottom: SP.xl }}>
-              <p style={{ fontSize: T.pageTitle.size, fontWeight: T.pageTitle.weight, letterSpacing: T.pageTitle.tracking, color: C.primary, margin: `0 0 4px` }}>All Transactions</p>
-              <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: 0 }}>
-                {transactions.length} {transactions.length === 1 ? 'entry' : 'entries'} · {new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}
-              </p>
-            </div>
+          {/* ── HISTORY ── */}
+          {screen === 'history' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: SP.xl }}>
+                <div>
+                  <p style={{ fontSize: T.pageTitle.size, fontWeight: T.pageTitle.weight, letterSpacing: T.pageTitle.tracking, color: C.primary, margin: `0 0 4px` }}>All Transactions</p>
+                  <p style={{ fontSize: T.eyebrow.size, fontWeight: T.eyebrow.weight, letterSpacing: T.eyebrow.tracking, color: C.muted, margin: 0 }}>
+                    {transactions.length} {transactions.length === 1 ? 'entry' : 'entries'} · {new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <button onClick={toggleMono} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'transparent', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)', color: C.muted, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', flexShrink: 0, transition: 'all 0.3s ease' }}>
+                  {mono ? '◑' : '◐'}
+                </button>
+              </div>
 
-            {!loading && <SummaryCard title="This Month" rangeLabel={monthly.monthLabel} moneyIn={monthly.moneyIn} moneyOut={monthly.moneyOut} net={monthly.net} />}
+              {!loading && <SummaryCard title="This Month" rangeLabel={monthly.monthLabel} moneyIn={monthly.moneyIn} moneyOut={monthly.moneyOut} net={monthly.net} />}
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: `${SP.lg} 0 ${SP.xl}` }} />
+              <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.07)', margin: `${SP.lg} 0 ${SP.xl}` }} />
 
-            {!loading && transactions.length === 0
-              ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
-              : Object.entries(allGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={true} newTxId={newTxId} />)
-            }
-          </>
+              {!loading && transactions.length === 0
+                ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
+                : Object.entries(allGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={true} newTxId={newTxId} />)
+              }
+            </>
+          )}
+        </div>
+
+        <BottomBar screen={screen} setScreen={setScreen} onAdd={() => setModal({ mode: 'add' })} />
+
+        {modal && (
+          <TransactionModal
+            mode={modal.mode}
+            tx={modal.tx}
+            accounts={accounts}
+            onSave={handleSave}
+            onDelete={handleDelete}
+            onClose={closeModal}
+            closing={modalClosing}
+          />
         )}
       </div>
-
-      <BottomBar screen={screen} setScreen={setScreen} onAdd={() => setModal({ mode: 'add' })} />
-
-      {modal && (
-        <TransactionModal
-          mode={modal.mode}
-          tx={modal.tx}
-          accounts={accounts}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={closeModal}
-          closing={modalClosing}
-        />
-      )}
-    </div>
+    </ThemeCtx.Provider>
   )
 }
