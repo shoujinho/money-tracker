@@ -200,7 +200,7 @@ function SummaryCard({ title, rangeLabel, moneyIn, moneyOut, net }) {
   )
 }
 
-function TransactionRow({ tx, onEdit }) {
+function TransactionRow({ tx, onEdit, isNew }) {
   const isPos = Number(tx.amount) >= 0
   const [pressed, setPressed] = useState(false)
   const color = isPos ? C.mint : C.amber
@@ -210,6 +210,9 @@ function TransactionRow({ tx, onEdit }) {
   const tintBorder = isPos ? 'rgba(79,255,176,0.14)' : 'rgba(255,176,50,0.14)'
   const tintHL = isPos ? 'rgba(79,255,176,0.2)' : 'rgba(255,176,50,0.2)'
   const barTop = isPos ? '#7fffcc' : '#ffd080'
+  const newAnimation = isNew
+    ? `txSlideIn 0.35s cubic-bezier(0.32, 0.72, 0, 1) both, ${isPos ? 'txGlowMint' : 'txGlowAmber'} 1.4s ease 0.35s both`
+    : undefined
 
   return (
     <div
@@ -219,7 +222,7 @@ function TransactionRow({ tx, onEdit }) {
       onMouseLeave={() => setPressed(false)}
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: SP.md, padding: '13px 14px', borderRadius: R.md, background: tintBg, border: `1px solid ${tintBorder}`, boxShadow: `inset 0 1px 0 ${tintHL}`, marginBottom: '4px', transition: 'background 0.1s', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+      style={{ display: 'flex', alignItems: 'center', gap: SP.md, padding: '13px 14px', borderRadius: R.md, background: tintBg, border: `1px solid ${tintBorder}`, boxShadow: `inset 0 1px 0 ${tintHL}`, marginBottom: '4px', transition: 'background 0.1s', cursor: 'pointer', position: 'relative', overflow: 'hidden', animation: newAnimation }}
     >
       <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: `linear-gradient(90deg, transparent, ${tintHL}, transparent)` }} />
       <div style={{ width: '3px', height: '30px', borderRadius: '2px', flexShrink: 0, background: `linear-gradient(180deg, ${barTop}, ${color})` }} />
@@ -234,7 +237,7 @@ function TransactionRow({ tx, onEdit }) {
   )
 }
 
-function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false }) {
+function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false, newTxId }) {
   const net = getDailyNet(txs)
   const isPos = net >= 0
   return (
@@ -247,7 +250,7 @@ function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false }) {
           </span>
         )}
       </div>
-      {txs.map(tx => <TransactionRow key={tx.id} tx={tx} onEdit={onEdit} />)}
+      {txs.map(tx => <TransactionRow key={tx.id} tx={tx} onEdit={onEdit} isNew={tx.id === newTxId} />)}
     </div>
   )
 }
@@ -601,6 +604,7 @@ export default function App() {
   const [screen, setScreen] = useState('dashboard')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [newTxId, setNewTxId] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -613,9 +617,18 @@ export default function App() {
   useEffect(() => { load() }, [load])
 
   const handleSave = async (data) => {
-    if (modal?.mode === 'edit') await updateTransaction(modal.tx.id, data)
-    else await createTransaction(data)
-    await load()
+    if (modal?.mode === 'edit') {
+      await updateTransaction(modal.tx.id, data)
+      await load()
+    } else {
+      const newTx = await createTransaction(data)
+      await load()
+      const id = Array.isArray(newTx) ? newTx[0]?.id : newTx?.id
+      if (id) {
+        setNewTxId(id)
+        setTimeout(() => setNewTxId(null), 1800)
+      }
+    }
   }
 
   const handleDelete = async (id) => { await deleteTransaction(id); await load() }
@@ -638,6 +651,9 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: C.base, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.primary }}>
       <style>{`
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+        @keyframes txSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes txGlowMint { 0% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } 30% { box-shadow: 0 0 0 4px rgba(79,255,176,0.25), inset 0 0 12px rgba(79,255,176,0.15); } 100% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } }
+        @keyframes txGlowAmber { 0% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } 30% { box-shadow: 0 0 0 4px rgba(255,176,50,0.25), inset 0 0 12px rgba(255,176,50,0.15); } 100% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
         select option { background: #16161f; color: #fff; }
         input::placeholder { color: rgba(255,255,255,0.2); }
@@ -684,7 +700,7 @@ export default function App() {
 
             {!loading && transactions.length === 0
               ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
-              : Object.entries(recentGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={false} />)
+              : Object.entries(recentGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={false} newTxId={newTxId} />)
             }
           </>
         )}
@@ -705,7 +721,7 @@ export default function App() {
 
             {!loading && transactions.length === 0
               ? <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: C.muted, textAlign: 'center', padding: '40px 0' }}>No transactions yet. Tap + to add one.</p>
-              : Object.entries(allGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={true} />)
+              : Object.entries(allGrouped).map(([label, txs]) => <DateGroup key={label} dateLabel={label} txs={txs} onEdit={(tx) => setModal({ mode: 'edit', tx })} showDailyNet={true} newTxId={newTxId} />)
             }
           </>
         )}
