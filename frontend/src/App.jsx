@@ -253,17 +253,19 @@ function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false }) {
 }
 
 // ── CALENDAR PICKER ────────────────────────────────────────────
-function CalendarPicker({ value, onChange }) {
+function CalendarPicker({ value, onChange, open, onToggle }) {
   const parseDate = (str) => {
     const [y, m, d] = str.split('-').map(Number)
     return { year: y, month: m - 1, day: d }
   }
-  const { year, month, day } = parseDate(value)
+  const { year, month } = parseDate(value)
   const [viewYear, setViewYear] = useState(year)
   const [viewMonth, setViewMonth] = useState(month)
 
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa']
+  const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
@@ -271,6 +273,12 @@ function CalendarPicker({ value, onChange }) {
   const today = todayStr()
 
   const toStr = (y, m, d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+
+  const formatDisplay = (str) => {
+    const [y, m, d] = str.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    return `${WEEKDAYS[date.getDay()]}, ${MONTHS_SHORT[m-1]} ${d}, ${y}`
+  }
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(v => v - 1) }
@@ -287,38 +295,58 @@ function CalendarPicker({ value, onChange }) {
   const remaining = 42 - cells.length
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' })
 
+  const handleDaySelect = (dateStr) => {
+    onChange(dateStr)
+    onToggle() // collapse after selection
+  }
+
   return (
-    <div style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.md, padding: '12px', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent)' }} />
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.primary, letterSpacing: T.label.tracking }}>{MONTHS[viewMonth]} {viewYear}</span>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {[['‹', prevMonth], ['›', nextMonth]].map(([icon, fn]) => (
-            <button key={icon} onClick={fn} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: C.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</button>
-          ))}
-        </div>
-      </div>
-      {/* Day labels */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '6px' }}>
-        {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: C.muted, padding: '2px 0' }}>{d}</div>)}
-      </div>
-      {/* Day grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-        {cells.map((cell, i) => {
-          const dateStr = cell.type === 'cur' ? toStr(viewYear, viewMonth, cell.day)
-            : cell.type === 'prev' ? toStr(viewMonth === 0 ? viewYear - 1 : viewYear, viewMonth === 0 ? 11 : viewMonth - 1, cell.day)
-            : toStr(viewMonth === 11 ? viewYear + 1 : viewYear, viewMonth === 11 ? 0 : viewMonth + 1, cell.day)
-          const isSelected = dateStr === value
-          const isToday = dateStr === today
-          const isCur = cell.type === 'cur'
-          return (
-            <div key={i} onClick={() => onChange(dateStr)} style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', fontSize: '12px', fontWeight: isSelected ? 700 : isToday ? 600 : 500, color: isSelected ? C.base : isToday ? C.primary : isCur ? C.secondary : C.muted, background: isSelected ? C.primary : isToday ? 'rgba(255,255,255,0.12)' : 'transparent', transition: 'background 0.1s' }}>
-              {cell.day}
+    <div>
+      {/* Collapsed — styled date display */}
+      <button
+        onClick={onToggle}
+        style={{ width: '100%', ...S.input, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', border: open ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.14)' }}
+      >
+        <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
+        <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, position: 'relative', zIndex: 1 }}>{formatDisplay(value)}</span>
+        <span style={{ fontSize: '11px', color: C.muted, position: 'relative', zIndex: 1, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
+      </button>
+
+      {/* Expanded — calendar grid */}
+      {open && (
+        <div style={{ marginTop: '8px', background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: R.md, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent)' }} />
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 12px 8px' }}>
+            <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.primary, letterSpacing: T.label.tracking }}>{MONTHS[viewMonth]} {viewYear}</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[['‹', prevMonth], ['›', nextMonth]].map(([icon, fn]) => (
+                <button key={icon} onClick={fn} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: C.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</button>
+              ))}
             </div>
-          )
-        })}
-      </div>
+          </div>
+          {/* Day labels */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 8px', marginBottom: '4px' }}>
+            {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: C.muted, padding: '2px 0' }}>{d}</div>)}
+          </div>
+          {/* Day grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', padding: '0 8px 10px' }}>
+            {cells.map((cell, i) => {
+              const dateStr = cell.type === 'cur' ? toStr(viewYear, viewMonth, cell.day)
+                : cell.type === 'prev' ? toStr(viewMonth === 0 ? viewYear - 1 : viewYear, viewMonth === 0 ? 11 : viewMonth - 1, cell.day)
+                : toStr(viewMonth === 11 ? viewYear + 1 : viewYear, viewMonth === 11 ? 0 : viewMonth + 1, cell.day)
+              const isSelected = dateStr === value
+              const isToday = dateStr === today
+              const isCur = cell.type === 'cur'
+              return (
+                <div key={i} onClick={() => handleDaySelect(dateStr)} style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', fontSize: '12px', fontWeight: isSelected ? 700 : isToday ? 600 : 500, color: isSelected ? C.base : isToday ? C.primary : isCur ? C.secondary : C.muted, background: isSelected ? C.primary : isToday ? 'rgba(255,255,255,0.12)' : 'transparent', transition: 'background 0.1s' }}>
+                  {cell.day}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -335,6 +363,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [calOpen, setCalOpen] = useState(false)
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -353,6 +382,14 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  // Cycle through accounts on tap
+  const cycleAccount = () => {
+    const ids = accounts.map(a => a.id)
+    const currentIndex = ids.indexOf(parseInt(form.account_id))
+    const nextIndex = (currentIndex + 1) % ids.length
+    set('account_id', ids[nextIndex])
+  }
+
   const handleSubmit = async () => {
     if (!form.description.trim()) { setError('Description is required.'); return }
     const amount = parseFloat(form.amount)
@@ -369,6 +406,12 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
     catch { setError('Could not delete. Try again.'); setLoading(false) }
   }
 
+  const handleDateToggle = () => {
+    // Dismiss keyboard first, then open calendar
+    if (document.activeElement) document.activeElement.blur()
+    setCalOpen(o => !o)
+  }
+
   const inputStyle = {
     ...S.input,
     width: '100%', color: C.primary,
@@ -382,6 +425,8 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
     color: C.tertiary, marginBottom: SP.sm,
   }
 
+  const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
+
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', padding: '32px 20px 20px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none' }}>
       <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '28px 24px 24px', position: 'relative', overflow: 'hidden' }}>
@@ -394,7 +439,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: SP.xl, position: 'relative', zIndex: 1 }}>
           <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: C.primary, margin: 0 }}>
-            {isEdit ? 'Edit Transaction' : 'Add Transaction'}
+            {isEdit ? 'Edit Entry' : 'New Entry'}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm }}>
             {isEdit && (
@@ -410,6 +455,8 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
 
         {/* Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: SP.lg, position: 'relative', zIndex: 1 }}>
+
+          {/* GROUP 1 — What */}
           <div>
             <label style={labelStyle}>Description</label>
             <div style={{ position: 'relative' }}>
@@ -418,24 +465,31 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
             </div>
           </div>
           <div>
-            <label style={labelStyle}>Amount — positive = in, negative = out</label>
+            <label style={labelStyle}>Amount</label>
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-              <input type="number" step="any" style={inputStyle} placeholder="e.g. 5000 or -250" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+              <input type="number" step="any" style={inputStyle} placeholder="+ income  /  − expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
             </div>
           </div>
+
+          {/* Divider between groups */}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
+
+          {/* GROUP 2 — Where & When */}
           <div>
             <label style={labelStyle}>Account</label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-              <select style={inputStyle} value={form.account_id} onChange={e => set('account_id', e.target.value)}>
-                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
+            <button
+              onClick={cycleAccount}
+              style={{ ...S.input, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', overflow: 'hidden' }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
+              <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, position: 'relative', zIndex: 1 }}>{currentAccount?.name}</span>
+              <span style={{ fontSize: '11px', color: C.muted, position: 'relative', zIndex: 1 }}>tap to switch</span>
+            </button>
           </div>
           <div>
             <label style={labelStyle}>Date</label>
-            <CalendarPicker value={form.date} onChange={v => set('date', v)} />
+            <CalendarPicker value={form.date} onChange={v => set('date', v)} open={calOpen} onToggle={handleDateToggle} />
           </div>
         </div>
 
@@ -458,7 +512,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
           }}
         >
           <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'rgba(255,255,255,1)' }} />
-          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Transaction'}
+          {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Entry'}
         </button>
       </div>
     </div>
