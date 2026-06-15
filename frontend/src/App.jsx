@@ -423,24 +423,43 @@ function NavBar({ screen, setScreen }) {
     </svg>
   )
 
-  const navItem = (id, label, Icon) => (
-    <button onClick={() => setScreen(id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '7px 20px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: screen === id ? 'rgba(255,255,255,0.10)' : 'transparent', transition: 'background 0.15s', fontFamily: 'inherit' }}>
-      <Icon active={screen === id} />
-      <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: screen === id ? C.text1 : C.text4 }}>{label}</span>
-    </button>
-  )
+  const navItem = (id, label, Icon) => {
+    const isActive = screen === id
+    return (
+      <button
+        onClick={() => setScreen(id)}
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+          padding: '7px 20px', borderRadius: '999px', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit', position: 'relative', overflow: 'hidden',
+          background: isActive
+            ? 'linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)'
+            : 'transparent',
+          boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+          transition: 'background 0.15s',
+        }}
+      >
+        {isActive && (
+          <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }} />
+        )}
+        <Icon active={isActive} />
+        <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: isActive ? C.text1 : C.text4 }}>{label}</span>
+      </button>
+    )
+  }
 
   return (
     <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '2px',
-        background: 'linear-gradient(160deg, rgba(30,30,44,0.97) 0%, rgba(18,18,28,0.97) 100%)',
-        border: '1px solid rgba(255,255,255,0.16)',
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.02) 100%)',
+        border: '1px solid rgba(255,255,255,0.22)',
         borderRadius: '999px', padding: '5px 6px',
         position: 'relative', overflow: 'hidden',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 32px rgba(0,0,0,0.5)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.5)',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%)', borderRadius: '999px 999px 0 0', pointerEvents: 'none' }} />
         {navItem('dashboard', 'Dashboard', DashIcon)}
         {navItem('history', 'History', HistIcon)}
       </div>
