@@ -352,7 +352,7 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
 }
 
 // ── MODAL ──────────────────────────────────────────────────────
-function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
+function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing }) {
   const isEdit = mode === 'edit'
   const [form, setForm] = useState({
     date: tx?.date ?? todayStr(),
@@ -440,8 +440,8 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: mounted ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)', padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.25s ease' }}>
-      <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: mounted ? 'translateY(0)' : 'translateY(110%)', transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)', padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
+      <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)', transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
         {/* Drag handle */}
         <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
         {/* Highlights */}
@@ -597,6 +597,7 @@ export default function App() {
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [modal, setModal] = useState(null)
+  const [modalClosing, setModalClosing] = useState(false)
   const [screen, setScreen] = useState('dashboard')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -618,6 +619,14 @@ export default function App() {
   }
 
   const handleDelete = async (id) => { await deleteTransaction(id); await load() }
+
+  const closeModal = () => {
+    setModalClosing(true)
+    setTimeout(() => {
+      setModal(null)
+      setModalClosing(false)
+    }, 320)
+  }
 
   const weekly = getWeeklySummary(transactions)
   const monthly = getMonthlySummary(transactions)
@@ -711,7 +720,8 @@ export default function App() {
           accounts={accounts}
           onSave={handleSave}
           onDelete={handleDelete}
-          onClose={() => setModal(null)}
+          onClose={closeModal}
+          closing={modalClosing}
         />
       )}
     </div>
