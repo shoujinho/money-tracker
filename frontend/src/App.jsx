@@ -265,6 +265,11 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async () => {
@@ -297,7 +302,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   }
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', padding: '32px 20px 20px', overflowY: 'auto' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', padding: '32px 20px 20px', overflowY: 'hidden' }}>
       <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '28px 24px 24px', position: 'relative', overflow: 'hidden' }}>
         {/* Highlights */}
         <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
