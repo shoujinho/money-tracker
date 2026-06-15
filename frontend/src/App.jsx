@@ -452,11 +452,11 @@ function NavBar({ screen, setScreen }) {
     <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '2px',
-        background: 'linear-gradient(160deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.02) 100%)',
-        border: '1px solid rgba(255,255,255,0.22)',
+        background: 'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.03) 100%)',
+        border: '1px solid rgba(255,255,255,0.18)',
         borderRadius: '999px', padding: '5px 6px',
         position: 'relative', overflow: 'hidden',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.5)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.20), inset 0 -1px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.5)',
       }}>
         <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%)', borderRadius: '999px 999px 0 0', pointerEvents: 'none' }} />
@@ -481,13 +481,13 @@ function FAB({ onClick }) {
         position: 'fixed', bottom: '32px', right: '28px', zIndex: 40,
         width: '56px', height: '56px', borderRadius: '50%',
         background: pressed
-          ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
-          : 'linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)',
-        border: '1px solid rgba(255,255,255,0.28)',
+          ? 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 100%)'
+          : 'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.03) 100%)',
+        border: '1px solid rgba(255,255,255,0.18)',
         color: C.text1, fontSize: '26px', fontWeight: 300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', fontFamily: 'inherit',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.5)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.20), inset 0 -1px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.5)',
         overflow: 'hidden', transition: 'background 0.1s', position: 'fixed',
       }}
     >
