@@ -388,45 +388,28 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
 function BottomBar({ screen, setScreen, onAdd }) {
   const [addPressed, setAddPressed] = useState(false)
 
-  const DashIcon = ({ active }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" stroke={active ? C.primary : C.muted}>
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-    </svg>
-  )
-  const HistIcon = ({ active }) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke={active ? C.primary : C.muted}>
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  )
-
-  const navBtn = (id, Icon) => (
-    <button
-      onClick={() => setScreen(id)}
-      style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '12px 0', border: 'none', background: 'transparent',
-        cursor: 'pointer', fontFamily: 'inherit',
-      }}
-    >
-      <Icon active={screen === id} />
-    </button>
-  )
-
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-      background: `linear-gradient(180deg, transparent 0%, ${C.base} 40%)`,
-      paddingBottom: '24px',
+      background: `linear-gradient(180deg, transparent 0%, ${C.base} 38%)`,
+      paddingBottom: '28px',
     }}>
       <div style={{
         maxWidth: '480px', margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-        padding: '0 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: '8px',
       }}>
-        {/* Dashboard */}
-        {navBtn('dashboard', DashIcon)}
+        {/* Dashboard — bare icon, no box */}
+        <button
+          onClick={() => setScreen('dashboard')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" stroke={screen === 'dashboard' ? C.primary : C.muted}>
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+        </button>
 
-        {/* Add button — center, glass glossy circle */}
+        {/* Add — glossy circle, 68px */}
         <button
           onClick={onAdd}
           onMouseDown={() => setAddPressed(true)}
@@ -435,15 +418,15 @@ function BottomBar({ screen, setScreen, onAdd }) {
           onTouchStart={() => setAddPressed(true)}
           onTouchEnd={() => setAddPressed(false)}
           style={{
-            width: '52px', height: '52px', borderRadius: '50%', flexShrink: 0,
+            width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0,
             background: addPressed
               ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
               : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
             border: '1px solid rgba(255,255,255,0.26)',
-            color: C.primary, fontSize: '24px', fontWeight: 300,
+            color: C.primary, fontSize: '30px', fontWeight: 300,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.4)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 24px rgba(0,0,0,0.5)',
             transition: 'background 0.1s', position: 'relative',
           }}
         >
@@ -452,8 +435,15 @@ function BottomBar({ screen, setScreen, onAdd }) {
           +
         </button>
 
-        {/* History */}
-        {navBtn('history', HistIcon)}
+        {/* History — bare icon, no box */}
+        <button
+          onClick={() => setScreen('history')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke={screen === 'history' ? C.primary : C.muted}>
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
       </div>
     </div>
   )
