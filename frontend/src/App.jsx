@@ -252,6 +252,77 @@ function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false }) {
   )
 }
 
+// ── CALENDAR PICKER ────────────────────────────────────────────
+function CalendarPicker({ value, onChange }) {
+  const parseDate = (str) => {
+    const [y, m, d] = str.split('-').map(Number)
+    return { year: y, month: m - 1, day: d }
+  }
+  const { year, month, day } = parseDate(value)
+  const [viewYear, setViewYear] = useState(year)
+  const [viewMonth, setViewMonth] = useState(month)
+
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa']
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const daysInPrev = new Date(viewYear, viewMonth, 0).getDate()
+  const today = todayStr()
+
+  const toStr = (y, m, d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(v => v - 1) }
+    else setViewMonth(m => m - 1)
+  }
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(v => v + 1) }
+    else setViewMonth(m => m + 1)
+  }
+
+  const cells = []
+  for (let i = 0; i < firstDay; i++) cells.push({ day: daysInPrev - firstDay + i + 1, type: 'prev' })
+  for (let i = 1; i <= daysInMonth; i++) cells.push({ day: i, type: 'cur' })
+  const remaining = 42 - cells.length
+  for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' })
+
+  return (
+    <div style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.md, padding: '12px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent)' }} />
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.primary, letterSpacing: T.label.tracking }}>{MONTHS[viewMonth]} {viewYear}</span>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[['‹', prevMonth], ['›', nextMonth]].map(([icon, fn]) => (
+            <button key={icon} onClick={fn} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: C.secondary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</button>
+          ))}
+        </div>
+      </div>
+      {/* Day labels */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '6px' }}>
+        {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 600, color: C.muted, padding: '2px 0' }}>{d}</div>)}
+      </div>
+      {/* Day grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+        {cells.map((cell, i) => {
+          const dateStr = cell.type === 'cur' ? toStr(viewYear, viewMonth, cell.day)
+            : cell.type === 'prev' ? toStr(viewMonth === 0 ? viewYear - 1 : viewYear, viewMonth === 0 ? 11 : viewMonth - 1, cell.day)
+            : toStr(viewMonth === 11 ? viewYear + 1 : viewYear, viewMonth === 11 ? 0 : viewMonth + 1, cell.day)
+          const isSelected = dateStr === value
+          const isToday = dateStr === today
+          const isCur = cell.type === 'cur'
+          return (
+            <div key={i} onClick={() => onChange(dateStr)} style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', fontSize: '12px', fontWeight: isSelected ? 700 : isToday ? 600 : 500, color: isSelected ? C.base : isToday ? C.primary : isCur ? C.secondary : C.muted, background: isSelected ? C.primary : isToday ? 'rgba(255,255,255,0.12)' : 'transparent', transition: 'background 0.1s' }}>
+              {cell.day}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── MODAL ──────────────────────────────────────────────────────
 function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const isEdit = mode === 'edit'
@@ -353,23 +424,18 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
               <input type="number" step="any" style={inputStyle} placeholder="e.g. 5000 or -250" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SP.md }}>
-            <div>
-              <label style={labelStyle}>Account</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-                <select style={inputStyle} value={form.account_id} onChange={e => set('account_id', e.target.value)}>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
+          <div>
+            <label style={labelStyle}>Account</label>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
+              <select style={inputStyle} value={form.account_id} onChange={e => set('account_id', e.target.value)}>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
             </div>
-            <div>
-              <label style={labelStyle}>Date</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-                <input type="date" style={inputStyle} value={form.date} onChange={e => set('date', e.target.value)} />
-              </div>
-            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Date</label>
+            <CalendarPicker value={form.date} onChange={v => set('date', v)} />
           </div>
         </div>
 
