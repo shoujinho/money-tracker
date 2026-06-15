@@ -364,6 +364,11 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [calOpen, setCalOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    requestAnimationFrame(() => setMounted(true))
+  }, [])
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -435,8 +440,10 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', padding: '32px 20px 20px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none' }}>
-      <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '28px 24px 24px', position: 'relative', overflow: 'hidden' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: mounted ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)', padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.25s ease' }}>
+      <div style={{ width: '100%', maxWidth: '400px', ...S.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: mounted ? 'translateY(0)' : 'translateY(110%)', transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+        {/* Drag handle */}
+        <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
         {/* Highlights */}
         <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)', borderRadius: '24px 24px 0 0', pointerEvents: 'none' }} />
