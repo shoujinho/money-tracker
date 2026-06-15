@@ -305,7 +305,7 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
       {/* Collapsed — styled date display */}
       <button
         onClick={onToggle}
-        style={{ width: '100%', ...S.input, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', border: open ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.14)' }}
+        style={{ width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: open ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}
       >
         <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
         <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, position: 'relative', zIndex: 1 }}>{formatDisplay(value)}</span>
@@ -412,12 +412,19 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
     setCalOpen(o => !o)
   }
 
-  const inputStyle = {
-    ...S.input,
-    width: '100%', color: C.primary,
+  const fieldBase = {
+    width: '100%',
+    background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: R.sm,
+    padding: '14px 16px',
+    color: C.primary,
     fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking,
-    padding: '14px 16px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+    WebkitAppearance: 'none', appearance: 'none',
   }
+
+  const inputStyle = { ...fieldBase }
 
   const labelStyle = {
     display: 'block',
@@ -459,17 +466,11 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
           {/* GROUP 1 — What */}
           <div>
             <label style={labelStyle}>Description</label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-              <input autoFocus style={inputStyle} placeholder="e.g. Lunch, Client Payment" value={form.description} onChange={e => set('description', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
-            </div>
+            <input style={inputStyle} placeholder="e.g. Lunch, Client Payment" value={form.description} onChange={e => set('description', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
           <div>
             <label style={labelStyle}>Amount</label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', zIndex: 1 }} />
-              <input type="number" step="any" style={inputStyle} placeholder="+ income  /  − expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
-            </div>
+            <input type="number" step="any" style={inputStyle} placeholder="+ income  /  − expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
 
           {/* Divider between groups */}
@@ -480,11 +481,10 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
             <label style={labelStyle}>Account</label>
             <button
               onClick={cycleAccount}
-              style={{ ...S.input, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', overflow: 'hidden' }}
+              style={{ ...fieldBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', overflow: 'hidden' }}
             >
-              <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
-              <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary, position: 'relative', zIndex: 1 }}>{currentAccount?.name}</span>
-              <span style={{ fontSize: '11px', color: C.muted, position: 'relative', zIndex: 1 }}>tap to switch</span>
+              <span style={{ fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, color: C.primary }}>{currentAccount?.name}</span>
+              <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: C.muted }}>↻</span>
             </button>
           </div>
           <div>
