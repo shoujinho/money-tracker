@@ -470,7 +470,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
           </div>
           <div>
             <label style={labelStyle}>Amount</label>
-            <input type="number" step="any" style={inputStyle} placeholder="+ income  /  − expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+            <input type="number" step="any" style={inputStyle} placeholder="+ Income  /  − Expense" value={form.amount} onChange={e => set('amount', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
 
           {/* Divider between groups */}
