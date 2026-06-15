@@ -384,67 +384,78 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose }) {
   )
 }
 
-// ── NAV + FAB ──────────────────────────────────────────────────
-function NavBar({ screen, setScreen }) {
+// ── BOTTOM BAR ─────────────────────────────────────────────────
+function BottomBar({ screen, setScreen, onAdd }) {
+  const [addPressed, setAddPressed] = useState(false)
+
   const DashIcon = ({ active }) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" stroke={active ? C.primary : C.muted}>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" stroke={active ? C.primary : C.muted}>
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
     </svg>
   )
   const HistIcon = ({ active }) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" stroke={active ? C.primary : C.muted}>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke={active ? C.primary : C.muted}>
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   )
 
-  const navItem = (id, label, Icon) => {
-    const active = screen === id
-    return (
-      <button onClick={() => setScreen(id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '7px 18px', borderRadius: '999px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', overflow: 'hidden', background: active ? 'linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)' : 'transparent', boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none', transition: 'background 0.15s' }}>
-        {active && <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }} />}
-        <Icon active={active} />
-        <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: active ? C.primary : C.muted }}>{label}</span>
-      </button>
-    )
-  }
-
-  return (
-    <div style={{ position: 'fixed', bottom: '24px', left: '24px', zIndex: 40 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', ...S.float, borderRadius: '999px', padding: '5px 6px', position: 'relative', overflow: 'hidden' }}>
-        <FloatHighlight />
-        {navItem('dashboard', 'Dashboard', DashIcon)}
-        {navItem('history', 'History', HistIcon)}
-      </div>
-    </div>
-  )
-}
-
-function FAB({ onClick }) {
-  const [pressed, setPressed] = useState(false)
-  return (
+  const navBtn = (id, Icon) => (
     <button
-      onClick={onClick}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
+      onClick={() => setScreen(id)}
       style={{
-        position: 'fixed', bottom: '24px', right: '24px', zIndex: 40,
-        width: '52px', height: '52px', borderRadius: '50%',
-        ...S.float,
-        background: pressed
-          ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
-          : S.float.background,
-        color: C.primary, fontSize: '24px', fontWeight: 300,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden',
-        transition: 'background 0.1s',
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '12px 0', border: 'none', background: 'transparent',
+        cursor: 'pointer', fontFamily: 'inherit',
       }}
     >
-      <FloatHighlight />
-      +
+      <Icon active={screen === id} />
     </button>
+  )
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+      background: `linear-gradient(180deg, transparent 0%, ${C.base} 40%)`,
+      paddingBottom: '24px',
+    }}>
+      <div style={{
+        maxWidth: '480px', margin: '0 auto',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '0 24px',
+      }}>
+        {/* Dashboard */}
+        {navBtn('dashboard', DashIcon)}
+
+        {/* Add button — center, glass glossy circle */}
+        <button
+          onClick={onAdd}
+          onMouseDown={() => setAddPressed(true)}
+          onMouseUp={() => setAddPressed(false)}
+          onMouseLeave={() => setAddPressed(false)}
+          onTouchStart={() => setAddPressed(true)}
+          onTouchEnd={() => setAddPressed(false)}
+          style={{
+            width: '52px', height: '52px', borderRadius: '50%', flexShrink: 0,
+            background: addPressed
+              ? 'linear-gradient(160deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)'
+              : 'linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.03) 100%)',
+            border: '1px solid rgba(255,255,255,0.26)',
+            color: C.primary, fontSize: '24px', fontWeight: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.4)',
+            transition: 'background 0.1s', position: 'relative',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '50% 50% 0 0' }} />
+          +
+        </button>
+
+        {/* History */}
+        {navBtn('history', HistIcon)}
+      </div>
+    </div>
   )
 }
 
@@ -496,7 +507,7 @@ export default function App() {
       {/* Ambient glow */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 500px 600px at 50% 5%, rgba(20,180,140,0.20) 0%, transparent 65%), radial-gradient(ellipse 400px 400px at 5% 50%, rgba(0,200,120,0.07) 0%, transparent 70%)' }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: `${SP['2xl']} ${SP.xl} 120px` }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '480px', margin: '0 auto', padding: `${SP['2xl']} ${SP.xl} 140px` }}>
 
         {/* ── DASHBOARD ── */}
         {screen === 'dashboard' && (
@@ -559,8 +570,7 @@ export default function App() {
         )}
       </div>
 
-      <FAB onClick={() => setModal({ mode: 'add' })} />
-      <NavBar screen={screen} setScreen={setScreen} />
+      <BottomBar screen={screen} setScreen={setScreen} onAdd={() => setModal({ mode: 'add' })} />
 
       {modal && (
         <TransactionModal
