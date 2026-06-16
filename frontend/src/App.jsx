@@ -13,20 +13,6 @@ function useSheetAnimation(closing) {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true)))
     return () => cancelAnimationFrame(id)
   }, [])
-  useEffect(() => {
-    const scrollY = window.scrollY
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      document.body.style.overflow = ''
-      window.scrollTo(0, scrollY)
-    }
-  }, [])
   const visible = mounted && !closing
   const overlayBg = visible ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
   const sheetTransform = visible ? 'translateY(0)' : 'translateY(110%)'
@@ -501,6 +487,20 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [calOpen, setCalOpen] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -665,6 +665,20 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
   const [error, setError] = useState('')
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const cycleAccount = () => {
@@ -733,6 +747,21 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
   const mono = useMono()
   const [confirmCancel, setConfirmCancel] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
+
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
   const now = new Date()
   const month = now.getMonth() + 1
   const year = now.getFullYear()
