@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
-import { getBalances, getAccounts, getTransactions, createTransaction, deleteTransaction, updateTransaction } from './api'
+import { getBalances, getAccounts, getTransactions, createTransaction, deleteTransaction, updateTransaction, getRecurring, createRecurring, updateRecurring, deleteRecurring, getRecurringLogs, createRecurringLog, deleteRecurringLog } from './api'
 
 // ── THEME CONTEXT ──────────────────────────────────────────────
 const ThemeCtx = createContext(false)
@@ -459,14 +459,14 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
 }
 
 // ── MODAL ──────────────────────────────────────────────────────
-function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing }) {
+function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing, prefill = {} }) {
   const mono = useMono()
   const isEdit = mode === 'edit'
   const [form, setForm] = useState({
-    date: tx?.date ?? todayStr(),
-    description: tx?.description ?? '',
-    amount: tx ? String(tx.amount) : '',
-    account_id: tx?.account_id ?? accounts[0]?.id ?? '',
+    date: tx?.date ?? prefill.date ?? todayStr(),
+    description: tx?.description ?? prefill.description ?? '',
+    amount: tx ? String(tx.amount) : (prefill.amount ?? ''),
+    account_id: tx?.account_id ?? prefill.account_id ?? accounts[0]?.id ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -621,6 +621,27 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   )
 }
 
+// ── RECURRING HELPERS ──────────────────────────────────────────
+function getRecurringStatus(entry, logs, today) {
+  const now = new Date(today)
+  const day = now.getDate()
+  const log = logs.find(l => l.recurring_id === entry.id)
+  if (log) return log.status
+  const dueDay = entry.day_of_month
+  if (dueDay === day) return 'due'
+  if (dueDay > day && dueDay - day <= 3) return 'upcoming'
+  if (dueDay < day) return 'overdue'
+  return 'future'
+}
+function getDaysUntil(entry, today) {
+  const now = new Date(today)
+  return entry.day_of_month - now.getDate()
+}
+function getDaysOverdue(entry, today) {
+  const now = new Date(today)
+  return now.getDate() - entry.day_of_month
+}
+
 // ── BOTTOM BAR ─────────────────────────────────────────────────
 function BottomBar({ screen, setScreen, onAdd }) {
   const mono = useMono()
@@ -670,6 +691,12 @@ export default function App() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [newTxId, setNewTxId] = useState(null)
+  const [recurring, setRecurring] = useState([])
+  const [recurringLogs, setRecurringLogs] = useState([])
+  const [recurringSheet, setRecurringSheet] = useState(null)
+  const [recurringSheetClosing, setRecurringSheetClosing] = useState(false)
+  const [recurringForm, setRecurringForm] = useState(null)
+  const [recurringFormClosing, setRecurringFormClosing] = useState(false)
   const [mono, setMono] = useState(() => {
     try { return localStorage.getItem('theme') === 'mono' } catch { return false }
   })
@@ -684,10 +711,19 @@ export default function App() {
 
   const C = mono ? CM : CD
 
+  const todayDate = todayStr()
+
   const load = useCallback(async () => {
     try {
-      const [b, a, t] = await Promise.all([getBalances(), getAccounts(), getTransactions(200)])
-      setBalances(b); setAccounts(a); setTransactions(t); setError('')
+      const now = new Date()
+      const month = now.getMonth() + 1
+      const year = now.getFullYear()
+      const [b, a, t, r, rl] = await Promise.all([
+        getBalances(), getAccounts(), getTransactions(200),
+        getRecurring(), getRecurringLogs(month, year)
+      ])
+      setBalances(b); setAccounts(a); setTransactions(t)
+      setRecurring(r); setRecurringLogs(rl); setError('')
     } catch { setError('Could not reach database.') }
     finally { setLoading(false) }
   }, [])
@@ -713,11 +749,94 @@ export default function App() {
 
   const closeModal = () => {
     setModalClosing(true)
-    setTimeout(() => {
-      setModal(null)
-      setModalClosing(false)
-    }, 320)
+    setTimeout(() => { setModal(null); setModalClosing(false) }, 320)
   }
+
+  const closeRecurringSheet = () => {
+    setRecurringSheetClosing(true)
+    setTimeout(() => { setRecurringSheet(null); setRecurringSheetClosing(false) }, 320)
+  }
+
+  const closeRecurringForm = () => {
+    setRecurringFormClosing(true)
+    setTimeout(() => { setRecurringForm(null); setRecurringFormClosing(false) }, 320)
+  }
+
+  const handleRecurringSave = async (data) => {
+    if (recurringForm?.entry) await updateRecurring(recurringForm.entry.id, data)
+    else await createRecurring(data)
+    await load()
+  }
+
+  const handleRecurringLog = async (entry) => {
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
+    const existingLog = recurringLogs.find(l => l.recurring_id === entry.id)
+    if (existingLog) {
+      await deleteRecurringLog(entry.id, month, year)
+      await load()
+      closeRecurringSheet()
+      return
+    }
+    closeRecurringSheet()
+    setModal({
+      mode: 'add',
+      prefill: {
+        description: entry.name,
+        amount: String(entry.amount),
+        account_id: entry.account_id,
+        date: todayStr(),
+      },
+      recurringId: entry.id,
+    })
+  }
+
+  const handleRecurringSkip = async (entry) => {
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
+    const existingLog = recurringLogs.find(l => l.recurring_id === entry.id)
+    if (existingLog) {
+      await deleteRecurringLog(entry.id, month, year)
+    } else {
+      await createRecurringLog(entry.id, month, year, 'skipped')
+    }
+    await load()
+    closeRecurringSheet()
+  }
+
+  const handleRecurringDelete = async (entry) => {
+    await deleteRecurring(entry.id)
+    await load()
+    closeRecurringSheet()
+  }
+
+  const handleSaveWithRecurring = async (data) => {
+    if (modal?.mode === 'edit') {
+      await updateTransaction(modal.tx.id, data)
+      await load()
+    } else {
+      const newTx = await createTransaction(data)
+      await load()
+      const id = Array.isArray(newTx) ? newTx[0]?.id : newTx?.id
+      if (id) {
+        setNewTxId(id)
+        setTimeout(() => setNewTxId(null), 1800)
+        if (modal?.recurringId) {
+          const now = new Date()
+          await createRecurringLog(modal.recurringId, now.getMonth() + 1, now.getFullYear(), 'logged', id)
+          await load()
+        }
+      }
+    }
+  }
+
+  // Banner entries — only show actionable ones
+  const bannerEntries = recurring.filter(e => {
+    const status = getRecurringStatus(e, recurringLogs, todayDate)
+    return status === 'due' || status === 'overdue' || status === 'upcoming'
+  })
 
   const weekly = getWeeklySummary(transactions)
   const monthly = getMonthlySummary(transactions)
@@ -771,6 +890,22 @@ export default function App() {
 
               {error && <div style={{ background: mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,176,50,0.1)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,176,50,0.3)', color: mono ? CM.secondary : CD.amber, fontSize: T.eyebrow.size, fontWeight: 500, borderRadius: R.sm, padding: `${SP.md} ${SP.lg}`, marginBottom: SP.lg }}>{error}</div>}
 
+              {/* Recurring banners */}
+              {!loading && bannerEntries.map(entry => {
+                const status = getRecurringStatus(entry, recurringLogs, todayDate)
+                return (
+                  <RecurringBanner
+                    key={entry.id}
+                    entry={entry}
+                    status={status}
+                    today={todayDate}
+                    onLog={() => handleRecurringLog(entry)}
+                    onSkip={() => handleRecurringSkip(entry)}
+                    onTap={() => setRecurringSheet({ entry, status })}
+                  />
+                )
+              })}
+
               {/* Account cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SP.sm, marginBottom: SP.sm }}>
                 {loading ? <><SkeletonCard /><SkeletonCard /></> : balances?.accounts.map(a => <BalanceCard key={a.id} label={a.name} amount={a.balance} />)}
@@ -778,6 +913,19 @@ export default function App() {
 
               {/* Weekly summary */}
               {!loading && <SummaryCard title="This Week" rangeLabel={weekly.rangeLabel} moneyIn={weekly.moneyIn} moneyOut={weekly.moneyOut} net={weekly.net} />}
+
+              {/* Recurring section */}
+              {!loading && (
+                <div style={{ marginTop: SP.sm }}>
+                  <RecurringSection
+                    entries={recurring}
+                    logs={recurringLogs}
+                    today={todayDate}
+                    onAdd={() => setRecurringForm({})}
+                    onTapEntry={(entry) => setRecurringSheet({ entry, status: getRecurringStatus(entry, recurringLogs, todayDate) })}
+                  />
+                </div>
+              )}
 
               {/* Divider */}
               <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.07)', margin: `${SP.xl} 0` }} />
@@ -826,10 +974,35 @@ export default function App() {
             mode={modal.mode}
             tx={modal.tx}
             accounts={accounts}
-            onSave={handleSave}
+            onSave={handleSaveWithRecurring}
             onDelete={handleDelete}
             onClose={closeModal}
             closing={modalClosing}
+            prefill={modal.prefill ?? {}}
+          />
+        )}
+
+        {recurringSheet && (
+          <RecurringSheet
+            entry={recurringSheet.entry}
+            status={recurringSheet.status}
+            accounts={accounts}
+            onLog={() => handleRecurringLog(recurringSheet.entry)}
+            onSkip={() => handleRecurringSkip(recurringSheet.entry)}
+            onEdit={() => { closeRecurringSheet(); setTimeout(() => setRecurringForm({ entry: recurringSheet.entry }), 350) }}
+            onCancel={() => handleRecurringDelete(recurringSheet.entry)}
+            onClose={closeRecurringSheet}
+            closing={recurringSheetClosing}
+          />
+        )}
+
+        {recurringForm !== null && (
+          <RecurringForm
+            entry={recurringForm.entry}
+            accounts={accounts}
+            onSave={handleRecurringSave}
+            onClose={closeRecurringForm}
+            closing={recurringFormClosing}
           />
         )}
       </div>

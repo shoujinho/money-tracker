@@ -81,3 +81,56 @@ export async function deleteTransaction(id) {
   })
   if (!res.ok) throw new Error('Failed to delete transaction')
 }
+
+// ── RECURRING ──────────────────────────────────────────────────
+export async function getRecurring() {
+  const res = await fetch(db('/recurring?select=*,accounts(name)&order=day_of_month'), { headers })
+  if (!res.ok) throw new Error('Failed to fetch recurring')
+  const rows = await res.json()
+  return rows.map(r => ({ ...r, account_name: r.accounts?.name }))
+}
+
+export async function createRecurring(data) {
+  const res = await fetch(db('/recurring'), {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ name: data.name, amount: data.amount, account_id: data.account_id, day_of_month: data.day_of_month })
+  })
+  if (!res.ok) throw new Error('Failed to create recurring')
+  return res.json()
+}
+
+export async function updateRecurring(id, data) {
+  const res = await fetch(db(`/recurring?id=eq.${id}`), {
+    method: 'PATCH',
+    headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ name: data.name, amount: data.amount, account_id: data.account_id, day_of_month: data.day_of_month })
+  })
+  if (!res.ok) throw new Error('Failed to update recurring')
+}
+
+export async function deleteRecurring(id) {
+  const res = await fetch(db(`/recurring?id=eq.${id}`), { method: 'DELETE', headers })
+  if (!res.ok) throw new Error('Failed to delete recurring')
+}
+
+export async function getRecurringLogs(month, year) {
+  const res = await fetch(db(`/recurring_logs?month=eq.${month}&year=eq.${year}`), { headers })
+  if (!res.ok) throw new Error('Failed to fetch recurring logs')
+  return res.json()
+}
+
+export async function createRecurringLog(recurringId, month, year, status, transactionId = null) {
+  const res = await fetch(db('/recurring_logs'), {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ recurring_id: recurringId, month, year, status, logged_transaction_id: transactionId })
+  })
+  if (!res.ok) throw new Error('Failed to create recurring log')
+  return res.json()
+}
+
+export async function deleteRecurringLog(recurringId, month, year) {
+  const res = await fetch(db(`/recurring_logs?recurring_id=eq.${recurringId}&month=eq.${month}&year=eq.${year}`), { method: 'DELETE', headers })
+  if (!res.ok) throw new Error('Failed to delete recurring log')
+}
