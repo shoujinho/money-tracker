@@ -525,10 +525,9 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   }
 
   const handleDelete = async () => {
-    if (!confirmDelete) { setConfirmDelete(true); return }
     setLoading(true)
     try { await onDelete(tx.id); onClose() }
-    catch { setError('Could not delete. Try again.'); setLoading(false) }
+    catch { setError('Could not delete. Try again.'); setLoading(false); setConfirmDelete(false) }
   }
 
   const handleDateToggle = () => {
@@ -580,52 +579,57 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: SP.xl, position: 'relative', zIndex: 1 }}>
-          <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: mono ? CM.primary : CD.primary, margin: 0 }}>
-            {isEdit ? 'Edit Entry' : 'New Entry'}
-          </h2>
+          {confirmDelete ? (
+            <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? 'rgba(200,80,50,0.85)' : 'rgba(255,130,100,0.85)', letterSpacing: T.label.tracking }}>Delete this entry?</span>
+          ) : (
+            <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: mono ? CM.primary : CD.primary, margin: 0 }}>
+              {isEdit ? 'Edit Entry' : 'New Entry'}
+            </h2>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm }}>
             {isEdit && (
-              <>
-                <div style={{ position: 'relative' }}>
-                  {showRecurringLabel && (
-                    <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: mono ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.14)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.20)', borderRadius: '6px', padding: '3px 8px', whiteSpace: 'nowrap', fontSize: '10px', fontWeight: 600, color: mono ? '#f7f6f3' : 'rgba(255,255,255,0.85)', pointerEvents: 'none', zIndex: 10 }}>
-                      {isAlreadyRecurring ? 'Recurring entry' : recurringPending ? 'Tap again to confirm' : 'Add as recurring'}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      if (isAlreadyRecurring) {
-                        // Already recurring — single tap opens detail
-                        setShowRecurringLabel(true)
-                        setTimeout(() => setShowRecurringLabel(false), 1600)
-                        setTimeout(() => onViewRecurring?.(), 400)
-                        return
-                      }
-                      if (!recurringPending) {
-                        // First tap — show label, arm the button
-                        setShowRecurringLabel(true)
-                        setRecurringPending(true)
-                        setTimeout(() => {
-                          setShowRecurringLabel(false)
+              confirmDelete ? (
+                <>
+                  <button onClick={() => setConfirmDelete(false)} style={{ height: '28px', padding: '0 12px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                  <button onClick={handleDelete} style={{ height: '28px', padding: '0 12px', background: 'rgba(220,60,40,0.12)', border: '1px solid rgba(220,60,40,0.35)', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: mono ? 'rgba(200,60,40,0.90)' : 'rgba(255,100,80,0.90)', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                </>
+              ) : (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    {showRecurringLabel && (
+                      <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: mono ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.14)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.20)', borderRadius: '6px', padding: '3px 8px', whiteSpace: 'nowrap', fontSize: '10px', fontWeight: 600, color: mono ? '#f7f6f3' : 'rgba(255,255,255,0.85)', pointerEvents: 'none', zIndex: 10 }}>
+                        {isAlreadyRecurring ? 'Recurring entry' : recurringPending ? 'Tap again to confirm' : 'Add as recurring'}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (isAlreadyRecurring) {
+                          setShowRecurringLabel(true)
+                          setTimeout(() => setShowRecurringLabel(false), 1600)
+                          setTimeout(() => onViewRecurring?.(), 400)
+                          return
+                        }
+                        if (!recurringPending) {
+                          setShowRecurringLabel(true)
+                          setRecurringPending(true)
+                          setTimeout(() => { setShowRecurringLabel(false); setRecurringPending(false) }, 2000)
+                        } else {
                           setRecurringPending(false)
-                        }, 2000)
-                      } else {
-                        // Second tap — open the form
-                        setRecurringPending(false)
-                        setShowRecurringLabel(false)
-                        onAddRecurring?.({ description: form.description, amount: form.amount, account_id: form.account_id })
-                      }
-                    }}
-                    style={{ width: '34px', height: '34px', borderRadius: '50%', background: isAlreadyRecurring ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(79,255,176,0.12)') : recurringPending ? (mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.14)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'), border: isAlreadyRecurring ? (mono ? '1px solid rgba(0,0,0,0.20)' : '1px solid rgba(79,255,176,0.30)') : recurringPending ? (mono ? '1px solid rgba(0,0,0,0.25)' : '1px solid rgba(255,255,255,0.30)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: isAlreadyRecurring ? (mono ? CM.primary : '#4fffb0') : recurringPending ? (mono ? CM.primary : CD.primary) : (mono ? CM.muted : CD.muted), fontFamily: 'inherit', transition: 'all 0.2s' }}>
-                    ↻
+                          setShowRecurringLabel(false)
+                          onAddRecurring?.({ description: form.description, amount: form.amount, account_id: form.account_id })
+                        }
+                      }}
+                      style={{ width: '34px', height: '34px', borderRadius: '50%', background: isAlreadyRecurring ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(79,255,176,0.12)') : recurringPending ? (mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.14)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'), border: isAlreadyRecurring ? (mono ? '1px solid rgba(0,0,0,0.20)' : '1px solid rgba(79,255,176,0.30)') : recurringPending ? (mono ? '1px solid rgba(0,0,0,0.25)' : '1px solid rgba(255,255,255,0.30)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: isAlreadyRecurring ? (mono ? CM.primary : '#4fffb0') : recurringPending ? (mono ? CM.primary : CD.primary) : (mono ? CM.muted : CD.muted), fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                      ↻
+                    </button>
+                  </div>
+                  <button onClick={() => setConfirmDelete(true)} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,176,50,0.08)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,176,50,0.20)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={mono ? CM.secondary : 'rgba(255,176,50,0.7)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
                   </button>
-                </div>
-                <button onClick={handleDelete} style={{ width: '34px', height: '34px', borderRadius: '50%', background: confirmDelete ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,176,50,0.2)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,176,50,0.08)'), border: confirmDelete ? (mono ? '1px solid rgba(0,0,0,0.3)' : '1px solid rgba(255,176,50,0.5)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,176,50,0.2)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={mono ? CM.secondary : (confirmDelete ? CD.amber : 'rgba(255,176,50,0.7)')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                  </svg>
-                </button>
-              </>
+                </>
+              )
             )}
             <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
           </div>
@@ -658,7 +662,6 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
         </div>
 
         {error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>{error}</p>}
-        {confirmDelete && !error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>Tap the trash icon again to confirm.</p>}
 
         <button onClick={handleSubmit} disabled={loading} style={saveBtnStyle}>
           {!mono && <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'rgba(255,255,255,1)' }} />}
