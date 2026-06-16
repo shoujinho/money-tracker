@@ -1144,7 +1144,7 @@ export default function App() {
           input[type=date]::-webkit-calendar-picker-indicator { filter: ${mono ? 'none' : 'invert(0.5)'}; }
           select option { background: ${mono ? '#fff' : '#16161f'}; color: ${mono ? '#1c1c1a' : '#fff'}; }
           input::placeholder { color: ${mono ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)'}; }
-          * { box-sizing: border-box; } *:not([data-sheet]) { transition: background 1s ease, border-color 1s ease, color 1s ease, box-shadow 1s ease; } button, input, select { transition: background 1s ease, border-color 1s ease, color 1s ease; }
+          * { box-sizing: border-box; transition: background 1s ease, border-color 1s ease, color 1s ease, box-shadow 1s ease; } button, input, select { transition: background 1s ease, border-color 1s ease, color 1s ease; }
         `}</style>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
