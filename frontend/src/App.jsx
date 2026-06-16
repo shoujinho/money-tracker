@@ -642,6 +642,292 @@ function getDaysOverdue(entry, today) {
   return now.getDate() - entry.day_of_month
 }
 
+
+// ── RECURRING FORM SHEET ───────────────────────────────────────
+function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
+  const mono = useMono()
+  const isEdit = !!entry
+  const [form, setForm] = useState({
+    name: entry?.name ?? '',
+    amount: entry ? String(Math.abs(entry.amount)) : '',
+    account_id: entry?.account_id ?? accounts[0]?.id ?? '',
+    day_of_month: entry?.day_of_month ?? new Date().getDate(),
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const cycleAccount = () => {
+    const ids = accounts.map(a => a.id)
+    const idx = ids.indexOf(parseInt(form.account_id))
+    set('account_id', ids[(idx + 1) % ids.length])
+  }
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError('Name is required.'); return }
+    const amount = parseFloat(form.amount)
+    if (isNaN(amount) || amount <= 0) { setError('Enter a positive amount.'); return }
+    const day = parseInt(form.day_of_month)
+    if (isNaN(day) || day < 1 || day > 31) { setError('Enter a valid day (1–31).'); return }
+    setLoading(true); setError('')
+    try {
+      await onSave({ ...form, amount: -Math.abs(amount), account_id: parseInt(form.account_id), day_of_month: day })
+      onClose()
+    } catch { setError('Something went wrong. Try again.'); setLoading(false) }
+  }
+
+  const fieldBase = mono
+    ? { width: '100%', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: R.sm, padding: '14px 16px', color: CM.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
+    : { width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', color: CD.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
+  const labelStyle = { display: 'block', fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: mono ? CM.secondary : CD.tertiary, marginBottom: SP.sm }
+  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
+  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
+  const modalBg = mono ? SM.modal.background : SD.modal.background
+  const modalBorder = mono ? SM.modal.border : SD.modal.border
+  const modalShadow = mono ? SM.modal.boxShadow : SD.modal.boxShadow
+  const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+        <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
+        {!mono && <>
+          <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.20), transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+        </>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: SP.xl, position: 'relative', zIndex: 1 }}>
+          <h2 style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: mono ? CM.primary : CD.primary, margin: 0 }}>{isEdit ? 'Edit recurring' : 'New recurring'}</h2>
+          <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: SP.lg, position: 'relative', zIndex: 1 }}>
+          <div><label style={labelStyle}>Name</label><input autoFocus style={fieldBase} placeholder="e.g. Netflix, Maya Subscription" value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div><label style={labelStyle}>Monthly amount</label><input type="number" step="any" style={fieldBase} placeholder="e.g. 299" value={form.amount} onChange={e => set('amount', e.target.value)} /></div>
+          <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
+          <div><label style={labelStyle}>Account</label>
+            <button onClick={cycleAccount} style={{ ...fieldBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <span>{currentAccount?.name}</span><span style={{ fontSize: T.label.size, color: mono ? CM.muted : CD.muted }}>↻</span>
+            </button>
+          </div>
+          <div><label style={labelStyle}>Day of month</label><input type="number" min="1" max="31" style={fieldBase} placeholder="e.g. 16" value={form.day_of_month} onChange={e => set('day_of_month', e.target.value)} /></div>
+        </div>
+        {error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>{error}</p>}
+        <button onClick={handleSave} disabled={loading} style={{ width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1, background: loading ? 'rgba(255,255,255,0.1)' : (mono ? '#1c1c1a' : 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)'), border: 'none', borderRadius: R.pill, color: loading ? 'rgba(0,0,0,0.3)' : (mono ? '#f7f6f3' : CD.base), fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, padding: '16px', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', overflow: 'hidden', boxShadow: (loading || mono) ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)', transition: 'background 0.15s' }}>
+          {loading ? 'Saving...' : isEdit ? 'Save changes' : 'Add recurring'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── RECURRING DETAIL SHEET ─────────────────────────────────────
+function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCancel, onClose, closing }) {
+  const mono = useMono()
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
+  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const year = now.getFullYear()
+  const modalBg = mono ? SM.modal.background : SD.modal.background
+  const modalBorder = mono ? SM.modal.border : SD.modal.border
+  const detailBg = mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'
+  const detailBorder = mono ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)'
+  const detailDivider = mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'
+  const badge = status === 'due' ? { label: 'Due today', color: '#ffb032', bg: 'rgba(255,176,50,0.15)', border: 'rgba(255,176,50,0.25)' }
+    : status === 'overdue' ? { label: 'Overdue', color: 'rgba(255,100,100,0.90)', bg: 'rgba(255,80,80,0.12)', border: 'rgba(255,80,80,0.25)' }
+    : status === 'logged' ? { label: 'Logged', color: '#4fffb0', bg: 'rgba(79,255,176,0.12)', border: 'rgba(79,255,176,0.25)' }
+    : status === 'skipped' ? { label: 'Skipped', color: 'rgba(255,255,255,0.40)', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)' }
+    : { label: 'Upcoming', color: 'rgba(255,255,255,0.40)', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)' }
+  const showLog = status === 'due' || status === 'overdue'
+  const showSkip = status === 'due' || status === 'overdue'
+  const showUndo = status === 'logged' || status === 'skipped'
+  const suffix = (d) => d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'
+  const nextDueDate = () => new Date(year, month - 1, entry.day_of_month).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+  const lastLogged = () => new Date(year, month - 2, entry.day_of_month).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+  const secBtn = { height: '48px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontFamily: 'inherit' }
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+        <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 18px' }} />
+        {!mono && <>
+          <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.20), transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '1px', background: 'linear-gradient(180deg, rgba(255,255,255,0.10), transparent 60%)' }} />
+        </>}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px', position: 'relative', zIndex: 1 }}>
+          <div>
+            <p style={{ fontSize: T.title.size, fontWeight: T.title.weight, letterSpacing: T.title.tracking, color: mono ? CM.primary : CD.primary, margin: 0 }}>{entry.name}</p>
+            <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.tertiary : CD.tertiary, margin: '3px 0 0' }}>Monthly recurring · {entry.account_name}</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm }}>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: T.display.size, fontWeight: T.display.weight, letterSpacing: T.display.tracking, color: mono ? CM.expense : CD.amber, fontVariantNumeric: 'tabular-nums', lineHeight: 1, margin: 0 }}>{fmt(entry.amount)}</p>
+              <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.muted : CD.muted, margin: '2px 0 0' }}>per month</p>
+            </div>
+            <button onClick={onClose} style={{ width: '30px', height: '30px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
+          </div>
+        </div>
+        <div style={{ background: detailBg, border: detailBorder, borderRadius: R.md, overflow: 'hidden', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
+          {[['Status', <span style={{ fontSize: '9px', fontWeight: 700, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}`, borderRadius: '6px', padding: '2px 6px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{badge.label}</span>], ['Next due', nextDueDate()], ['Repeats', `Monthly · ${entry.day_of_month}${suffix(entry.day_of_month)}`], ['Account', entry.account_name], ['Last logged', lastLogged()]].map(([lbl, val], i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: i < 4 ? `1px solid ${detailDivider}` : 'none' }}>
+              <span style={{ fontSize: T.eyebrow.size, color: mono ? CM.tertiary : CD.muted }}>{lbl}</span>
+              {typeof val === 'string' ? <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.primary : CD.secondary }}>{val}</span> : val}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', zIndex: 1 }}>
+          {confirmCancel ? (<>
+            <div style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.20)', borderRadius: R.md, padding: '14px', marginBottom: '4px' }}>
+              <p style={{ fontSize: T.body.size, fontWeight: 600, color: mono ? CM.primary : CD.primary, margin: '0 0 6px' }}>Remove this recurring entry?</p>
+              <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.tertiary, margin: 0, lineHeight: 1.5 }}>{entry.name} will be removed. Past logged transactions won't be affected.</p>
+            </div>
+            <button onClick={onCancel} style={{ width: '100%', height: '48px', background: 'rgba(255,80,80,0.80)', border: 'none', borderRadius: R.pill, fontSize: T.body.size, fontWeight: T.bodyStrong.weight, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>Yes, remove it</button>
+            <button onClick={() => setConfirmCancel(false)} style={{ width: '100%', ...secBtn }}>Keep it</button>
+          </>) : (<>
+            {showLog && <button onClick={onLog} style={{ width: '100%', height: '48px', background: mono ? '#1c1c1a' : 'linear-gradient(180deg, #fff 0%, #ebebeb 100%)', border: 'none', borderRadius: R.pill, fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, color: mono ? '#f7f6f3' : CD.base, cursor: 'pointer', fontFamily: 'inherit', position: 'relative', overflow: 'hidden', boxShadow: mono ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)' }}>Log this month</button>}
+            {showUndo && <button onClick={onLog} style={{ width: '100%', ...secBtn }}>Undo — mark as {status === 'logged' ? 'not logged' : 'not skipped'}</button>}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {showSkip && <button onClick={onSkip} style={{ flex: 1, ...secBtn }}>Not this month</button>}
+              <button onClick={onEdit} style={{ flex: 1, ...secBtn }}>Edit</button>
+            </div>
+            <div style={{ borderTop: mono ? '1px solid rgba(0,0,0,0.07)' : '1px solid rgba(255,255,255,0.07)', marginTop: '6px', paddingTop: '14px' }}>
+              <button onClick={() => setConfirmCancel(true)} style={{ width: '100%', height: '48px', background: 'rgba(255,60,60,0.08)', border: '1px solid rgba(255,80,80,0.22)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: 'rgba(255,80,80,0.70)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel subscription</button>
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── RECURRING BANNER ───────────────────────────────────────────
+function RecurringBanner({ entry, status, onLog, onSkip, onTap, today }) {
+  const mono = useMono()
+  const daysOverdue = getDaysOverdue(entry, today)
+  const daysUntil = getDaysUntil(entry, today)
+  if (status === 'due') return (
+    <div onClick={onTap} style={{ background: mono ? 'rgba(0,0,0,0.06)' : 'linear-gradient(160deg, rgba(255,176,50,0.12) 0%, rgba(255,176,50,0.05) 100%)', border: mono ? '1px solid rgba(0,0,0,0.14)' : '1px solid rgba(255,176,50,0.28)', borderRadius: R.lg, padding: '13px 14px', marginBottom: '10px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+      {!mono && <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,176,50,0.35), transparent)' }} />}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div><p style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.primary : CD.primary, margin: 0 }}>↻ {entry.name}</p><p style={{ fontSize: T.eyebrow.size, color: mono ? CM.tertiary : CD.muted, margin: '2px 0 0' }}>Monthly · {entry.account_name} · Due today</p></div>
+        <span style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, color: mono ? CM.expense : CD.amber, fontVariantNumeric: 'tabular-nums' }}>{fmt(entry.amount)}</span>
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }} onClick={e => e.stopPropagation()}>
+        <button onClick={onLog} style={{ flex: 1, height: '38px', background: mono ? '#1c1c1a' : '#ffb032', border: 'none', borderRadius: R.pill, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? '#f7f6f3' : '#0a0a0f', cursor: 'pointer', fontFamily: 'inherit' }}>Log it</button>
+        <button onClick={onSkip} style={{ flex: 1, height: '38px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.muted, cursor: 'pointer', fontFamily: 'inherit' }}>Not this month</button>
+      </div>
+    </div>
+  )
+  if (status === 'overdue') return (
+    <div onClick={onTap} style={{ background: 'linear-gradient(160deg, rgba(255,80,80,0.10) 0%, rgba(255,80,80,0.04) 100%)', border: '1px solid rgba(255,80,80,0.25)', borderRadius: R.lg, padding: '13px 14px', marginBottom: '10px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: '5%', right: '5%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,80,80,0.30), transparent)' }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div><p style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.primary : CD.primary, margin: 0 }}>↻ {entry.name}</p><p style={{ fontSize: T.eyebrow.size, color: 'rgba(255,100,100,0.70)', margin: '2px 0 0' }}>{daysOverdue} {daysOverdue === 1 ? 'day' : 'days'} overdue · was due {entry.day_of_month}th</p></div>
+        <span style={{ fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, color: 'rgba(255,100,100,0.90)', fontVariantNumeric: 'tabular-nums' }}>{fmt(entry.amount)}</span>
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }} onClick={e => e.stopPropagation()}>
+        <button onClick={onLog} style={{ flex: 1, height: '38px', background: 'rgba(255,80,80,0.80)', border: 'none', borderRadius: R.pill, fontSize: T.label.size, fontWeight: T.label.weight, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>Log it now</button>
+        <button onClick={onSkip} style={{ flex: 1, height: '38px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.muted, cursor: 'pointer', fontFamily: 'inherit' }}>Not this month</button>
+      </div>
+    </div>
+  )
+  if (status === 'upcoming') return (
+    <div onClick={onTap} style={{ background: mono ? 'rgba(0,0,0,0.04)' : 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: mono ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', borderRadius: R.lg, padding: '13px 14px', marginBottom: '10px', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div><p style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : 'rgba(255,255,255,0.60)', margin: 0 }}>↻ {entry.name}</p><p style={{ fontSize: T.eyebrow.size, color: mono ? CM.tertiary : CD.muted, margin: '2px 0 0' }}>Due in {daysUntil} {daysUntil === 1 ? 'day' : 'days'} · {entry.account_name}</p></div>
+        <span style={{ fontSize: T.bodyStrong.size, fontWeight: T.body.weight, color: mono ? CM.tertiary : CD.muted, fontVariantNumeric: 'tabular-nums' }}>{fmt(entry.amount)}</span>
+      </div>
+    </div>
+  )
+  return null
+}
+
+// ── RECURRING SECTION ──────────────────────────────────────────
+function RecurringSection({ entries, logs, today, onAdd, onTapEntry }) {
+  const mono = useMono()
+  const cardBg = mono ? '#fff' : 'rgba(255,255,255,0.04)'
+  const cardBorder = mono ? '1px solid rgba(0,0,0,0.14)' : '1px solid rgba(255,255,255,0.10)'
+  const divColor = mono ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'
+  const itemDiv = mono ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'
+  const suffix = (d) => d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'
+  const badgeFor = (status) => {
+    if (status === 'due') return { label: 'Today', color: '#ffb032', bg: 'rgba(255,176,50,0.15)', border: 'rgba(255,176,50,0.25)' }
+    if (status === 'overdue') return { label: 'Overdue', color: 'rgba(255,100,100,0.90)', bg: 'rgba(255,80,80,0.12)', border: 'rgba(255,80,80,0.25)' }
+    if (status === 'logged') return { label: 'Logged', color: mono ? CM.secondary : '#4fffb0', bg: mono ? 'rgba(0,0,0,0.06)' : 'rgba(79,255,176,0.12)', border: mono ? 'rgba(0,0,0,0.12)' : 'rgba(79,255,176,0.25)' }
+    if (status === 'skipped') return { label: 'Skipped', color: mono ? CM.muted : CD.muted, bg: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)' }
+    const now = new Date(today)
+    const nextMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+    return { label: `${nextMonth.toLocaleDateString('en-PH', { month: 'short' })} ${entries[0]?.day_of_month ?? ''}`, color: mono ? CM.muted : CD.muted, bg: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)' }
+  }
+  return (
+    <div style={{ background: cardBg, border: cardBorder, borderRadius: R.lg, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${SP.md} ${SP.lg}` }}>
+        <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.tertiary : CD.tertiary, letterSpacing: T.label.tracking }}>Recurring</span>
+        <button onClick={onAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', fontWeight: 300, color: mono ? CM.tertiary : CD.tertiary, fontFamily: 'inherit', padding: '0 0 0 8px' }}>+</button>
+      </div>
+      <div style={{ height: '1px', background: divColor }} />
+      {entries.length === 0 ? (
+        <div style={{ padding: `${SP.xl} ${SP.lg}`, textAlign: 'center' }}>
+          <p style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.muted : CD.muted, margin: `0 0 ${SP.md}` }}>No recurring entries yet</p>
+          <button onClick={onAdd} style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.tertiary, background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: `${SP.sm} ${SP.lg}`, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add recurring</button>
+        </div>
+      ) : entries.map((entry, i) => {
+        const status = getRecurringStatus(entry, logs, today)
+        const badge = badgeFor(status)
+        const amtColor = mono ? (status === 'logged' ? CM.secondary : CM.expense) : (status === 'logged' ? CD.muted : CD.amber)
+        return (
+          <div key={entry.id} onClick={() => onTapEntry(entry)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${SP.md} ${SP.lg}`, borderBottom: i < entries.length - 1 ? `1px solid ${itemDiv}` : 'none', cursor: 'pointer' }}>
+            <div>
+              <p style={{ fontSize: T.body.size, fontWeight: T.body.weight, color: mono ? CM.primary : CD.secondary, margin: 0 }}>{entry.name}</p>
+              <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.tertiary : CD.muted, margin: '2px 0 0' }}>Monthly · {entry.day_of_month}{suffix(entry.day_of_month)} · {entry.account_name}</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '9px', fontWeight: 700, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}`, borderRadius: '6px', padding: '2px 6px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{badge.label}</span>
+              <span style={{ fontSize: T.label.size, fontWeight: status === 'logged' ? 400 : 600, color: amtColor, fontVariantNumeric: 'tabular-nums' }}>{fmt(entry.amount)}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+
 // ── BOTTOM BAR ─────────────────────────────────────────────────
 function BottomBar({ screen, setScreen, onAdd }) {
   const mono = useMono()
