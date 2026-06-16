@@ -473,7 +473,7 @@ function CalendarPicker({ value, onChange, open, onToggle }) {
 }
 
 // ── MODAL ──────────────────────────────────────────────────────
-function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing, prefill = {} }) {
+function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closing, prefill = {}, recurringLogs = [], onAddRecurring, onViewRecurring }) {
   const mono = useMono()
   const isEdit = mode === 'edit'
   const [form, setForm] = useState({
@@ -486,7 +486,9 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [calOpen, setCalOpen] = useState(false)
+  const [showRecurringLabel, setShowRecurringLabel] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
+  const isAlreadyRecurring = tx ? recurringLogs.some(l => l.logged_transaction_id === tx.id) : false
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -582,11 +584,32 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm }}>
             {isEdit && (
-              <button onClick={handleDelete} style={{ width: '34px', height: '34px', borderRadius: '50%', background: confirmDelete ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,176,50,0.2)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,176,50,0.08)'), border: confirmDelete ? (mono ? '1px solid rgba(0,0,0,0.3)' : '1px solid rgba(255,176,50,0.5)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,176,50,0.2)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={mono ? CM.secondary : (confirmDelete ? CD.amber : 'rgba(255,176,50,0.7)')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                </svg>
-              </button>
+              <>
+                <div style={{ position: 'relative' }}>
+                  {showRecurringLabel && (
+                    <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: mono ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.14)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.20)', borderRadius: '6px', padding: '3px 8px', whiteSpace: 'nowrap', fontSize: '10px', fontWeight: 600, color: mono ? '#f7f6f3' : 'rgba(255,255,255,0.85)', pointerEvents: 'none', zIndex: 10 }}>
+                      {isAlreadyRecurring ? 'Recurring entry' : 'Add as recurring'}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowRecurringLabel(true)
+                      setTimeout(() => setShowRecurringLabel(false), 1600)
+                      setTimeout(() => {
+                        if (isAlreadyRecurring) onViewRecurring?.()
+                        else onAddRecurring?.({ description: form.description, amount: form.amount, account_id: form.account_id })
+                      }, 400)
+                    }}
+                    style={{ width: '34px', height: '34px', borderRadius: '50%', background: isAlreadyRecurring ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(79,255,176,0.12)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'), border: isAlreadyRecurring ? (mono ? '1px solid rgba(0,0,0,0.20)' : '1px solid rgba(79,255,176,0.30)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: isAlreadyRecurring ? (mono ? CM.primary : '#4fffb0') : (mono ? CM.muted : CD.muted), fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                    ↻
+                  </button>
+                </div>
+                <button onClick={handleDelete} style={{ width: '34px', height: '34px', borderRadius: '50%', background: confirmDelete ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,176,50,0.2)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,176,50,0.08)'), border: confirmDelete ? (mono ? '1px solid rgba(0,0,0,0.3)' : '1px solid rgba(255,176,50,0.5)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,176,50,0.2)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={mono ? CM.secondary : (confirmDelete ? CD.amber : 'rgba(255,176,50,0.7)')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </button>
+              </>
             )}
             <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
           </div>
@@ -653,13 +676,14 @@ function getDaysOverdue(entry, today) {
 
 
 // ── RECURRING FORM SHEET ───────────────────────────────────────
-function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
+function RecurringForm({ entry, accounts, onSave, onClose, closing, recurringForm }) {
   const mono = useMono()
   const isEdit = !!entry
+  const pf = recurringForm?.prefill ?? {}
   const [form, setForm] = useState({
-    name: entry?.name ?? '',
-    amount: entry ? String(Math.abs(entry.amount)) : '',
-    account_id: entry?.account_id ?? accounts[0]?.id ?? '',
+    name: entry?.name ?? pf.description ?? '',
+    amount: entry ? String(Math.abs(entry.amount)) : (pf.amount ? String(Math.abs(parseFloat(pf.amount))) : ''),
+    account_id: entry?.account_id ?? pf.account_id ?? accounts[0]?.id ?? '',
     day_of_month: entry?.day_of_month ?? new Date().getDate(),
   })
   const [loading, setLoading] = useState(false)
@@ -724,7 +748,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
           <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: SP.lg, position: 'relative', zIndex: 1 }}>
-          <div><label style={labelStyle}>Name</label><input style={fieldBase} placeholder="e.g. Netflix, Maya Subscription" value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div><label style={labelStyle}>Name</label><input autoFocus style={fieldBase} placeholder="e.g. Netflix, Maya Subscription" value={form.name} onChange={e => set('name', e.target.value)} /></div>
           <div><label style={labelStyle}>Monthly amount</label><input type="number" step="any" style={fieldBase} placeholder="e.g. 299" value={form.amount} onChange={e => set('amount', e.target.value)} /></div>
           <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
           <div><label style={labelStyle}>Account</label>
@@ -1052,6 +1076,21 @@ export default function App() {
     setTimeout(() => { setRecurringForm(null); setRecurringFormClosing(false) }, 320)
   }
 
+  const handleAddAsRecurring = (prefillData) => {
+    closeModal()
+    setTimeout(() => setRecurringForm({ prefill: prefillData }), 350)
+  }
+
+  const handleViewRecurring = (txId) => {
+    const log = recurringLogs.find(l => l.logged_transaction_id === txId)
+    if (!log) return
+    const entry = recurring.find(r => r.id === log.recurring_id)
+    if (!entry) return
+    closeModal()
+    const status = getRecurringStatus(entry, recurringLogs, todayDate)
+    setTimeout(() => setRecurringSheet({ entry, status }), 350)
+  }
+
   const handleRecurringSave = async (data) => {
     if (recurringForm?.entry) await updateRecurring(recurringForm.entry.id, data)
     else await createRecurring(data)
@@ -1141,6 +1180,7 @@ export default function App() {
           @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
           @keyframes txSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes txGlowMint { 0% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } 30% { box-shadow: 0 0 0 4px rgba(79,255,176,0.25), inset 0 0 12px rgba(79,255,176,0.15); } 100% { box-shadow: 0 0 0 0 rgba(79,255,176,0); } }
+          @keyframes tooltipFade { 0% { opacity: 0; transform: translateX(-50%) translateY(4px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 75% { opacity: 1; } 100% { opacity: 0; } }
           @keyframes txGlowAmber { 0% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } 30% { box-shadow: 0 0 0 4px rgba(255,176,50,0.25), inset 0 0 12px rgba(255,176,50,0.15); } 100% { box-shadow: 0 0 0 0 rgba(255,176,50,0); } }
           input[type=date]::-webkit-calendar-picker-indicator { filter: ${mono ? 'none' : 'invert(0.5)'}; }
           select option { background: ${mono ? '#fff' : '#16161f'}; color: ${mono ? '#1c1c1a' : '#fff'}; }
@@ -1269,6 +1309,9 @@ export default function App() {
             onClose={closeModal}
             closing={modalClosing}
             prefill={modal.prefill ?? {}}
+            recurringLogs={recurringLogs}
+            onAddRecurring={handleAddAsRecurring}
+            onViewRecurring={() => handleViewRecurring(modal.tx?.id)}
           />
         )}
 
@@ -1293,6 +1336,7 @@ export default function App() {
             onSave={handleRecurringSave}
             onClose={closeRecurringForm}
             closing={recurringFormClosing}
+            recurringForm={recurringForm}
           />
         )}
       </div>
