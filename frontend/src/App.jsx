@@ -13,6 +13,20 @@ function useSheetAnimation(closing) {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true)))
     return () => cancelAnimationFrame(id)
   }, [])
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
   const visible = mounted && !closing
   const overlayBg = visible ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
   const sheetTransform = visible ? 'translateY(0)' : 'translateY(110%)'
@@ -22,6 +36,7 @@ function useSheetAnimation(closing) {
     background: overlayBg, overflowY: 'hidden',
     touchAction: 'none', overscrollBehavior: 'none',
     transition: 'background 0.3s ease',
+    padding: '0 0 16px',
   }
   const sheetStyle = {
     transform: sheetTransform,
@@ -188,7 +203,6 @@ function getWeeklySummary(transactions) {
 function getMonthlySummary(transactions) {
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
-  const monthEnd = todayStr()
   const monthLabel = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
   let moneyIn = 0, moneyOut = 0
   transactions.forEach(tx => {
@@ -208,15 +222,6 @@ function CardHighlight() {
     <>
       <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }} />
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%)', borderRadius: `${R.lg} ${R.lg} 0 0`, pointerEvents: 'none' }} />
-    </>
-  )
-}
-
-function FloatHighlight() {
-  return (
-    <>
-      <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.70), transparent)' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)', borderRadius: '999px 999px 0 0', pointerEvents: 'none' }} />
     </>
   )
 }
@@ -299,7 +304,6 @@ function SummaryCard({ title, rangeLabel, moneyIn, moneyOut, net }) {
 
 function TransactionRow({ tx, onEdit, isNew }) {
   const mono = useMono()
-  const C = mono ? CM : CD
   const isPos = Number(tx.amount) >= 0
   const [pressed, setPressed] = useState(false)
 
@@ -378,7 +382,6 @@ function DateGroup({ dateLabel, txs, onEdit, showDailyNet = false, newTxId }) {
 // ── CALENDAR PICKER ────────────────────────────────────────────
 function CalendarPicker({ value, onChange, open, onToggle }) {
   const mono = useMono()
-  const C = mono ? CM : CD
   const parseDate = (str) => {
     const [y, m, d] = str.split('-').map(Number)
     return { year: y, month: m - 1, day: d }
@@ -498,20 +501,6 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [calOpen, setCalOpen] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
-  useEffect(() => {
-    const scrollY = window.scrollY
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      document.body.style.overflow = ''
-      window.scrollTo(0, scrollY)
-    }
-  }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -555,8 +544,6 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
 
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
-  // overlayStyle and sheetStyle from useSheetAnimation hook
-
   const modalStyle = mono
     ? { width: '100%', maxWidth: '400px', ...SM.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', ...sheetStyle }
     : { width: '100%', maxWidth: '400px', ...SD.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', ...sheetStyle }
@@ -574,7 +561,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   }
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', ...overlayStyle, padding: '0 0 16px' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={overlayStyle}>
       <div style={modalStyle}>
         {/* Drag handle */}
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
@@ -678,20 +665,6 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
   const [error, setError] = useState('')
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
-  useEffect(() => {
-    const scrollY = window.scrollY
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      document.body.style.overflow = ''
-      window.scrollTo(0, scrollY)
-    }
-  }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const cycleAccount = () => {
@@ -717,14 +690,13 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
     ? { width: '100%', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: R.sm, padding: '14px 16px', color: CM.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
     : { width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', color: CD.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
   const labelStyle = { display: 'block', fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: mono ? CM.secondary : CD.tertiary, marginBottom: SP.sm }
-  // overlayStyle and sheetStyle from useSheetAnimation hook
   const modalBg = mono ? SM.modal.background : SD.modal.background
   const modalBorder = mono ? SM.modal.border : SD.modal.border
   const modalShadow = mono ? SM.modal.boxShadow : SD.modal.boxShadow
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', ...overlayStyle, padding: '0 0 16px' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={overlayStyle}>
       <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
         {!mono && <>
@@ -761,20 +733,6 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
   const mono = useMono()
   const [confirmCancel, setConfirmCancel] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
-  useEffect(() => {
-    const scrollY = window.scrollY
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      document.body.style.overflow = ''
-      window.scrollTo(0, scrollY)
-    }
-  }, [])
   const now = new Date()
   const month = now.getMonth() + 1
   const year = now.getFullYear()
@@ -797,7 +755,7 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
   const secBtn = { height: '48px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontFamily: 'inherit' }
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ ...overlayStyle }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={overlayStyle}>
       <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 18px' }} />
         {!mono && <>
@@ -1157,7 +1115,7 @@ export default function App() {
           input[type=date]::-webkit-calendar-picker-indicator { filter: ${mono ? 'none' : 'invert(0.5)'}; }
           select option { background: ${mono ? '#fff' : '#16161f'}; color: ${mono ? '#1c1c1a' : '#fff'}; }
           input::placeholder { color: ${mono ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)'}; }
-          * { box-sizing: border-box; transition: background 1s ease, border-color 1s ease, color 1s ease, box-shadow 1s ease; } button, input, select { transition: background 1s ease, border-color 1s ease, color 1s ease; }
+          * { box-sizing: border-box; } *:not([data-sheet]) { transition: background 1s ease, border-color 1s ease, color 1s ease, box-shadow 1s ease; } button, input, select { transition: background 1s ease, border-color 1s ease, color 1s ease; }
         `}</style>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
