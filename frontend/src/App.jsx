@@ -67,7 +67,7 @@ const SD = {
   input: {
     background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)',
     border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '12px',
+    borderRadius: '14px',
   },
 }
 
@@ -98,11 +98,11 @@ const SM = {
   input: {
     background: '#ffffff',
     border: '1px solid rgba(0,0,0,0.18)',
-    borderRadius: '12px',
+    borderRadius: '14px',
   },
 }
 
-const R = { sm: '12px', md: '16px', lg: '20px', xl: '24px' }
+const R = { sm: '14px', md: '16px', lg: '20px', xl: '24px', pill: '999px' }
 const SP = { sm: '8px', md: '12px', lg: '16px', xl: '24px', '2xl': '32px' }
 
 // ── UTILITIES ──────────────────────────────────────────────────
@@ -543,7 +543,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const saveBtnStyle = {
     width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1,
     background: loading ? (mono ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)') : (mono ? '#1c1c1a' : 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)'),
-    border: 'none', borderRadius: R.sm,
+    border: 'none', borderRadius: R.pill,
     color: loading ? (mono ? CM.muted : 'rgba(0,0,0,0.3)') : (mono ? '#f7f6f3' : CD.base),
     fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking,
     padding: '16px', cursor: loading ? 'not-allowed' : 'pointer',
