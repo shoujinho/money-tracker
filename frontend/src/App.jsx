@@ -5,6 +5,30 @@ import { getBalances, getAccounts, getTransactions, createTransaction, deleteTra
 const ThemeCtx = createContext(false)
 const useMono = () => useContext(ThemeCtx)
 
+
+// ── SHEET ANIMATION HOOK ───────────────────────────────────────
+function useSheetAnimation(closing) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true)))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  const visible = mounted && !closing
+  const overlayBg = visible ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
+  const sheetTransform = visible ? 'translateY(0)' : 'translateY(110%)'
+  const overlayStyle = {
+    position: 'fixed', inset: 0, zIndex: 50,
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    background: overlayBg, overflowY: 'hidden',
+    touchAction: 'none', overscrollBehavior: 'none',
+    transition: 'background 0.3s ease',
+  }
+  const sheetStyle = {
+    transform: sheetTransform,
+    transition: 'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
+  }
+  return { overlayStyle, sheetStyle }
+}
 // ── DESIGN TOKENS ──────────────────────────────────────────────
 const T = {
   eyebrow:    { size: '12px', weight: 400, tracking: '-0.01em' },
@@ -472,9 +496,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [calOpen, setCalOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
+  const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -533,12 +555,11 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
 
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
-  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
-  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
+  // overlayStyle and sheetStyle from useSheetAnimation hook
 
   const modalStyle = mono
-    ? { width: '100%', maxWidth: '400px', ...SM.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }
-    : { width: '100%', maxWidth: '400px', ...SD.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }
+    ? { width: '100%', maxWidth: '400px', ...SM.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', ...sheetStyle }
+    : { width: '100%', maxWidth: '400px', ...SD.modal, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', ...sheetStyle }
 
   const saveBtnStyle = {
     width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1,
@@ -553,7 +574,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   }
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', ...overlayStyle, padding: '0 0 16px' }}>
       <div style={modalStyle}>
         {/* Drag handle */}
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
@@ -655,9 +676,8 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [mounted, setMounted] = useState(false)
+  const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
 
-  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
   useEffect(() => {
     const scrollY = window.scrollY
     document.body.style.position = 'fixed'
@@ -697,16 +717,15 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
     ? { width: '100%', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: R.sm, padding: '14px 16px', color: CM.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
     : { width: '100%', background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.04) 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: R.sm, padding: '14px 16px', color: CD.primary, fontSize: T.body.size, fontWeight: T.body.weight, letterSpacing: T.body.tracking, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
   const labelStyle = { display: 'block', fontSize: T.label.size, fontWeight: T.label.weight, letterSpacing: T.label.tracking, color: mono ? CM.secondary : CD.tertiary, marginBottom: SP.sm }
-  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
-  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
+  // overlayStyle and sheetStyle from useSheetAnimation hook
   const modalBg = mono ? SM.modal.background : SD.modal.background
   const modalBorder = mono ? SM.modal.border : SD.modal.border
   const modalShadow = mono ? SM.modal.boxShadow : SD.modal.boxShadow
   const currentAccount = accounts.find(a => a.id === parseInt(form.account_id)) || accounts[0]
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, padding: '0 0 16px', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
-      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', ...overlayStyle, padding: '0 0 16px' }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
         {!mono && <>
           <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
@@ -741,8 +760,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
 function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCancel, onClose, closing }) {
   const mono = useMono()
   const [confirmCancel, setConfirmCancel] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
+  const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
   useEffect(() => {
     const scrollY = window.scrollY
     document.body.style.position = 'fixed'
@@ -757,8 +775,6 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
       window.scrollTo(0, scrollY)
     }
   }, [])
-  const overlayBg = (mounted && !closing) ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
-  const sheetTransform = (mounted && !closing) ? 'translateY(0)' : 'translateY(110%)'
   const now = new Date()
   const month = now.getMonth() + 1
   const year = now.getFullYear()
@@ -781,8 +797,8 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
   const secBtn = { height: '48px', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.10)', borderRadius: R.sm, fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontFamily: 'inherit' }
 
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: overlayBg, overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', transition: 'background 0.3s ease' }}>
-      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden', transform: sheetTransform, transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={{ ...overlayStyle }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 18px' }} />
         {!mono && <>
           <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
