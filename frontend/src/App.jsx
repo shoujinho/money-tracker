@@ -15,7 +15,7 @@ function useSheetAnimation(closing) {
   }, [])
   const visible = mounted && !closing
   const overlayBg = visible ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
-  const sheetTransform = visible ? 'translateY(0)' : 'translateY(105%)'
+  const sheetTransform = visible ? 'translateY(0)' : 'translateY(110%)'
   const overlayStyle = {
     position: 'fixed', inset: 0, zIndex: 50,
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -26,9 +26,7 @@ function useSheetAnimation(closing) {
   }
   const sheetStyle = {
     transform: sheetTransform,
-    transition: 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)',
-    willChange: 'transform',
-    isolation: 'isolate',
+    transition: 'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
   }
   return { overlayStyle, sheetStyle }
 }
@@ -666,7 +664,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
+  const overlayStyle = { position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', padding: '0 0 16px' }
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -714,7 +712,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={overlayStyle}>
-      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', boxShadow: modalShadow, padding: '12px 22px 28px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 16px' }} />
         {!mono && <>
           <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
@@ -749,7 +747,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
 function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCancel, onClose, closing }) {
   const mono = useMono()
   const [confirmCancel, setConfirmCancel] = useState(false)
-  const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
+  const overlayStyle = { position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(5,5,12,0.80)', overflowY: 'hidden', touchAction: 'none', overscrollBehavior: 'none', padding: '0 0 16px' }
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -788,7 +786,7 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }} onTouchMove={(e) => e.preventDefault()} style={overlayStyle}>
-      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden', ...sheetStyle }}>
+      <div style={{ width: '100%', maxWidth: '400px', background: modalBg, border: modalBorder, borderRadius: '24px 24px 0 0', padding: '12px 20px 40px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ width: '36px', height: '4px', background: mono ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)', borderRadius: '2px', margin: '0 auto 18px' }} />
         {!mono && <>
           <div style={{ position: 'absolute', top: 0, left: '8%', right: '8%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)' }} />
