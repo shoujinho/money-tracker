@@ -487,6 +487,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [calOpen, setCalOpen] = useState(false)
   const [showRecurringLabel, setShowRecurringLabel] = useState(false)
+  const [recurringPending, setRecurringPending] = useState(false)
   const { overlayStyle, sheetStyle } = useSheetAnimation(closing)
   const isAlreadyRecurring = tx ? recurringLogs.some(l => l.logged_transaction_id === tx.id) : false
 
@@ -588,19 +589,34 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
                 <div style={{ position: 'relative' }}>
                   {showRecurringLabel && (
                     <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: mono ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.14)', border: mono ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.20)', borderRadius: '6px', padding: '3px 8px', whiteSpace: 'nowrap', fontSize: '10px', fontWeight: 600, color: mono ? '#f7f6f3' : 'rgba(255,255,255,0.85)', pointerEvents: 'none', zIndex: 10 }}>
-                      {isAlreadyRecurring ? 'Recurring entry' : 'Add as recurring'}
+                      {isAlreadyRecurring ? 'Recurring entry' : recurringPending ? 'Tap again to confirm' : 'Add as recurring'}
                     </div>
                   )}
                   <button
                     onClick={() => {
-                      setShowRecurringLabel(true)
-                      setTimeout(() => setShowRecurringLabel(false), 1600)
-                      setTimeout(() => {
-                        if (isAlreadyRecurring) onViewRecurring?.()
-                        else onAddRecurring?.({ description: form.description, amount: form.amount, account_id: form.account_id })
-                      }, 400)
+                      if (isAlreadyRecurring) {
+                        // Already recurring — single tap opens detail
+                        setShowRecurringLabel(true)
+                        setTimeout(() => setShowRecurringLabel(false), 1600)
+                        setTimeout(() => onViewRecurring?.(), 400)
+                        return
+                      }
+                      if (!recurringPending) {
+                        // First tap — show label, arm the button
+                        setShowRecurringLabel(true)
+                        setRecurringPending(true)
+                        setTimeout(() => {
+                          setShowRecurringLabel(false)
+                          setRecurringPending(false)
+                        }, 2000)
+                      } else {
+                        // Second tap — open the form
+                        setRecurringPending(false)
+                        setShowRecurringLabel(false)
+                        onAddRecurring?.({ description: form.description, amount: form.amount, account_id: form.account_id })
+                      }
                     }}
-                    style={{ width: '34px', height: '34px', borderRadius: '50%', background: isAlreadyRecurring ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(79,255,176,0.12)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'), border: isAlreadyRecurring ? (mono ? '1px solid rgba(0,0,0,0.20)' : '1px solid rgba(79,255,176,0.30)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: isAlreadyRecurring ? (mono ? CM.primary : '#4fffb0') : (mono ? CM.muted : CD.muted), fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                    style={{ width: '34px', height: '34px', borderRadius: '50%', background: isAlreadyRecurring ? (mono ? 'rgba(0,0,0,0.08)' : 'rgba(79,255,176,0.12)') : recurringPending ? (mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.14)') : (mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'), border: isAlreadyRecurring ? (mono ? '1px solid rgba(0,0,0,0.20)' : '1px solid rgba(79,255,176,0.30)') : recurringPending ? (mono ? '1px solid rgba(0,0,0,0.25)' : '1px solid rgba(255,255,255,0.30)') : (mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: isAlreadyRecurring ? (mono ? CM.primary : '#4fffb0') : recurringPending ? (mono ? CM.primary : CD.primary) : (mono ? CM.muted : CD.muted), fontFamily: 'inherit', transition: 'all 0.2s' }}>
                     ↻
                   </button>
                 </div>
@@ -748,7 +764,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing, recurringFor
           <button onClick={onClose} style={{ width: '34px', height: '34px', borderRadius: '50%', background: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)', color: mono ? CM.secondary : CD.tertiary, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: SP.lg, position: 'relative', zIndex: 1 }}>
-          <div><label style={labelStyle}>Name</label><input autoFocus style={fieldBase} placeholder="e.g. Netflix, Maya Subscription" value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div><label style={labelStyle}>Name</label><input style={fieldBase} placeholder="e.g. Netflix, Maya Subscription" value={form.name} onChange={e => set('name', e.target.value)} /></div>
           <div><label style={labelStyle}>Monthly amount</label><input type="number" step="any" style={fieldBase} placeholder="e.g. 299" value={form.amount} onChange={e => set('amount', e.target.value)} /></div>
           <div style={{ height: '1px', background: mono ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)', margin: '-4px 0' }} />
           <div><label style={labelStyle}>Account</label>
