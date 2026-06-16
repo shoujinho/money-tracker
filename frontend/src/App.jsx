@@ -15,7 +15,7 @@ function useSheetAnimation(closing) {
   }, [])
   const visible = mounted && !closing
   const overlayBg = visible ? 'rgba(5,5,12,0.80)' : 'rgba(5,5,12,0)'
-  const sheetTransform = visible ? 'translateY(0)' : 'translateY(110%)'
+  const sheetTransform = visible ? 'translateY(0)' : 'translateY(105%)'
   const overlayStyle = {
     position: 'fixed', inset: 0, zIndex: 50,
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -26,7 +26,9 @@ function useSheetAnimation(closing) {
   }
   const sheetStyle = {
     transform: sheetTransform,
-    transition: 'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
+    transition: 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)',
+    willChange: 'transform',
+    isolation: 'isolate',
   }
   return { overlayStyle, sheetStyle }
 }
