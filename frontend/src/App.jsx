@@ -474,7 +474,7 @@ function TransactionModal({ mode, tx, accounts, onSave, onDelete, onClose, closi
   const [calOpen, setCalOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
+  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
 
   useEffect(() => {
     const scrollY = window.scrollY
@@ -657,7 +657,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing }) {
   const [error, setError] = useState('')
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
+  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
   useEffect(() => {
     const scrollY = window.scrollY
     document.body.style.position = 'fixed'
@@ -742,7 +742,7 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
   const mono = useMono()
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { requestAnimationFrame(() => setMounted(true)) }, [])
+  useEffect(() => { requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true))) }, [])
   useEffect(() => {
     const scrollY = window.scrollY
     document.body.style.position = 'fixed'
