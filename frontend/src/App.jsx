@@ -189,6 +189,7 @@ function getWeeklySummary(transactions) {
 function getMonthlySummary(transactions) {
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
+  const monthEnd = todayStr()
   const monthLabel = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
   let moneyIn = 0, moneyOut = 0
   transactions.forEach(tx => {
