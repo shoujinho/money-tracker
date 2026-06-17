@@ -779,7 +779,7 @@ function RecurringForm({ entry, accounts, onSave, onClose, closing, recurringFor
         </div>
         {error && <p style={{ fontSize: T.eyebrow.size, color: mono ? CM.secondary : CD.amber, margin: `${SP.md} 0 0`, fontWeight: 500, position: 'relative', zIndex: 1 }}>{error}</p>}
         <button onClick={handleSave} disabled={loading} style={{ width: '100%', marginTop: SP.xl, position: 'relative', zIndex: 1, background: loading ? 'rgba(255,255,255,0.1)' : (mono ? '#1c1c1a' : 'linear-gradient(180deg, #ffffff 0%, #ebebeb 100%)'), border: 'none', borderRadius: R.pill, color: loading ? 'rgba(0,0,0,0.3)' : (mono ? '#f7f6f3' : CD.base), fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, letterSpacing: T.bodyStrong.tracking, padding: '16px', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', overflow: 'hidden', boxShadow: (loading || mono) ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)', transition: 'background 0.15s' }}>
-          {loading ? 'Saving...' : isEdit ? 'Save changes' : 'Add recurring'}
+          {loading ? 'Saving...' : isEdit ? 'Save changes' : 'Add recurring entry'}
         </button>
       </div>
     </div>
@@ -867,7 +867,7 @@ function RecurringSheet({ entry, status, accounts, onLog, onSkip, onEdit, onCanc
             <button onClick={() => setConfirmCancel(false)} style={{ width: '100%', ...secBtn }}>Keep it</button>
           </>) : (<>
             {showLog && <button onClick={onLog} style={{ width: '100%', height: '48px', background: mono ? '#1c1c1a' : 'linear-gradient(180deg, #fff 0%, #ebebeb 100%)', border: 'none', borderRadius: R.pill, fontSize: T.bodyStrong.size, fontWeight: T.bodyStrong.weight, color: mono ? '#f7f6f3' : CD.base, cursor: 'pointer', fontFamily: 'inherit', position: 'relative', overflow: 'hidden', boxShadow: mono ? 'none' : 'inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.3)' }}>Log this month</button>}
-            {showUndo && <button onClick={onLog} style={{ width: '100%', ...secBtn }}>Undo — mark as {status === 'logged' ? 'not logged' : 'not skipped'}</button>}
+            {showUndo && <button onClick={onLog} style={{ width: '100%', ...secBtn }}>{status === 'logged' ? 'Remove log' : 'Remove skip'}</button>}
             <div style={{ display: 'flex', gap: '8px' }}>
               {showSkip && <button onClick={onSkip} style={{ flex: 1, ...secBtn }}>Not this month</button>}
               <button onClick={onEdit} style={{ flex: 1, ...secBtn }}>Edit</button>
@@ -932,20 +932,20 @@ function RecurringSection({ entries, logs, today, onAdd, onTapEntry }) {
   const divColor = mono ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'
   const itemDiv = mono ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'
   const suffix = (d) => d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'
-  const badgeFor = (status) => {
+  const badgeFor = (status, entry) => {
     if (status === 'due') return { label: 'Today', color: '#ffb032', bg: 'rgba(255,176,50,0.15)', border: 'rgba(255,176,50,0.25)' }
     if (status === 'overdue') return { label: 'Overdue', color: 'rgba(255,100,100,0.90)', bg: 'rgba(255,80,80,0.12)', border: 'rgba(255,80,80,0.25)' }
     if (status === 'logged') return { label: 'Logged', color: mono ? CM.secondary : '#4fffb0', bg: mono ? 'rgba(0,0,0,0.06)' : 'rgba(79,255,176,0.12)', border: mono ? 'rgba(0,0,0,0.12)' : 'rgba(79,255,176,0.25)' }
     if (status === 'skipped') return { label: 'Skipped', color: mono ? CM.muted : CD.muted, bg: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)' }
     const now = new Date(today)
-    const nextMonth = new Date(now.getFullYear(), now.getMonth(), 0)
-    return { label: `${nextMonth.toLocaleDateString('en-PH', { month: 'short' })} ${entries[0]?.day_of_month ?? ''}`, color: mono ? CM.muted : CD.muted, bg: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)' }
+    const d = new Date(now.getFullYear(), now.getMonth(), entry.day_of_month)
+    return { label: d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }), color: mono ? CM.muted : CD.muted, bg: mono ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', border: mono ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.12)' }
   }
   return (
     <div style={{ background: cardBg, border: cardBorder, borderRadius: R.lg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${SP.md} ${SP.lg}` }}>
         <span style={{ fontSize: T.label.size, fontWeight: T.label.weight, color: mono ? CM.tertiary : CD.tertiary, letterSpacing: T.label.tracking }}>Recurring</span>
-        <button onClick={onAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', fontWeight: 300, color: mono ? CM.tertiary : CD.tertiary, fontFamily: 'inherit', padding: '0 0 0 8px' }}>+</button>
+        <button onClick={onAdd} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', fontWeight: 300, color: mono ? CM.secondary : CD.secondary, fontFamily: 'inherit', padding: '4px 0 4px 12px', lineHeight: 1 }}>+</button>
       </div>
       <div style={{ height: '1px', background: divColor }} />
       {entries.length === 0 ? (
@@ -955,7 +955,7 @@ function RecurringSection({ entries, logs, today, onAdd, onTapEntry }) {
         </div>
       ) : entries.map((entry, i) => {
         const status = getRecurringStatus(entry, logs, today)
-        const badge = badgeFor(status)
+        const badge = badgeFor(status, entry)
         const amtColor = mono ? (status === 'logged' ? CM.secondary : CM.expense) : (status === 'logged' ? CD.muted : CD.amber)
         return (
           <div key={entry.id} onClick={() => onTapEntry(entry)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${SP.md} ${SP.lg}`, borderBottom: i < entries.length - 1 ? `1px solid ${itemDiv}` : 'none', cursor: 'pointer' }}>
@@ -1027,9 +1027,7 @@ export default function App() {
   const [recurring, setRecurring] = useState([])
   const [recurringLogs, setRecurringLogs] = useState([])
   const [recurringSheet, setRecurringSheet] = useState(null)
-  const [recurringSheetClosing, setRecurringSheetClosing] = useState(false)
   const [recurringForm, setRecurringForm] = useState(null)
-  const [recurringFormClosing, setRecurringFormClosing] = useState(false)
   const [mono, setMono] = useState(() => {
     try { return localStorage.getItem('theme') === 'mono' } catch { return false }
   })
@@ -1063,21 +1061,6 @@ export default function App() {
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (data) => {
-    if (modal?.mode === 'edit') {
-      await updateTransaction(modal.tx.id, data)
-      await load()
-    } else {
-      const newTx = await createTransaction(data)
-      await load()
-      const id = Array.isArray(newTx) ? newTx[0]?.id : newTx?.id
-      if (id) {
-        setNewTxId(id)
-        setTimeout(() => setNewTxId(null), 1800)
-      }
-    }
-  }
-
   const handleDelete = async (id) => { await deleteTransaction(id); await load() }
 
   const closeModal = () => {
@@ -1085,15 +1068,8 @@ export default function App() {
     setTimeout(() => { setModal(null); setModalClosing(false) }, 320)
   }
 
-  const closeRecurringSheet = () => {
-    setRecurringSheetClosing(true)
-    setTimeout(() => { setRecurringSheet(null); setRecurringSheetClosing(false) }, 320)
-  }
-
-  const closeRecurringForm = () => {
-    setRecurringFormClosing(true)
-    setTimeout(() => { setRecurringForm(null); setRecurringFormClosing(false) }, 320)
-  }
+  const closeRecurringSheet = () => setRecurringSheet(null)
+  const closeRecurringForm = () => setRecurringForm(null)
 
   const handleAddAsRecurring = (prefillData) => {
     closeModal()
@@ -1344,7 +1320,7 @@ export default function App() {
             onEdit={() => { closeRecurringSheet(); setTimeout(() => setRecurringForm({ entry: recurringSheet.entry }), 350) }}
             onCancel={() => handleRecurringDelete(recurringSheet.entry)}
             onClose={closeRecurringSheet}
-            closing={recurringSheetClosing}
+            closing={false}
           />
         )}
 
@@ -1354,7 +1330,7 @@ export default function App() {
             accounts={accounts}
             onSave={handleRecurringSave}
             onClose={closeRecurringForm}
-            closing={recurringFormClosing}
+            closing={false}
             recurringForm={recurringForm}
           />
         )}
